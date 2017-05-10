@@ -31,8 +31,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
@@ -80,6 +78,8 @@ import org.apache.activemq.artemis.utils.OrderedExecutorFactory;
 import org.apache.activemq.artemis.utils.SimpleFuture;
 import org.apache.activemq.artemis.utils.SimpleFutureImpl;
 import org.jboss.logging.Logger;
+import org.jctools.maps.NonBlockingHashMapLong;
+import org.apache.activemq.artemis.utils.NonBlockingHashSetLong;
 
 /**
  * <p>A circular log implementation.</p>
@@ -168,12 +168,12 @@ public class JournalImpl extends JournalBase implements TestableJournal, Journal
    private final JournalFilesRepository filesRepository;
 
    // Compacting may replace this structure
-   private final ConcurrentMap<Long, JournalRecord> records = new ConcurrentHashMap<>();
+   private final NonBlockingHashMapLong<JournalRecord> records = new NonBlockingHashMapLong<>();
 
-   private final Set<Long> pendingRecords = new ConcurrentHashSet<>();
+   private final NonBlockingHashSetLong pendingRecords = new NonBlockingHashSetLong();
 
    // Compacting may replace this structure
-   private final ConcurrentMap<Long, JournalTransaction> transactions = new ConcurrentHashMap<>();
+   private final NonBlockingHashMapLong<JournalTransaction> transactions = new NonBlockingHashMapLong<>();
 
    // This will be set only while the JournalCompactor is being executed
    private volatile JournalCompactor compactor;

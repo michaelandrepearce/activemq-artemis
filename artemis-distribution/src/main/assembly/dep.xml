@@ -85,6 +85,7 @@
             <include>org.slf4j:slf4j-api</include>
             <include>io.airlift:airline</include>
             <include>com.google.guava:guava</include>
+            <include>org.jctools:jctools-core</include>
             <include>javax.inject:javax.inject</include>
             <include>org.eclipse.jetty.aggregate:jetty-all:jar:uber</include>
             <include>org.apache.tomcat:tomcat-servlet-api</include>
