@@ -61,10 +61,6 @@
          <artifactId>artemis-native</artifactId>
          <version>${project.version}</version>
       </dependency>
-      <dependency>
-         <groupId>org.jctools</groupId>
-         <artifactId>jctools-core</artifactId>
-      </dependency>
       <!-- needed to compile the tests -->
       <dependency>
          <groupId>junit</groupId>
