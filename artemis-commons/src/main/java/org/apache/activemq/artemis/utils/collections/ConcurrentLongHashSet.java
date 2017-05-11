@@ -59,12 +59,12 @@ public class ConcurrentLongHashSet {
       this(expectedItems, DefaultConcurrencyLevel);
    }
 
-   public ConcurrentLongHashSet(int expectedItems, int concurrencyLevel) {
-      checkArgument(expectedItems > 0);
-      checkArgument(concurrencyLevel > 0);
-      checkArgument(expectedItems >= concurrencyLevel);
+   public ConcurrentLongHashSet(int expectedItems, final int numSections) {
+      checkArgument(numSections > 0);
+      if (expectedItems < numSections) {
+         expectedItems = numSections;
+      }
 
-      int numSections = concurrencyLevel;
       int perSectionExpectedItems = expectedItems / numSections;
       int perSectionCapacity = (int) (perSectionExpectedItems / SetFillFactor);
       this.sections = new Section[numSections];
