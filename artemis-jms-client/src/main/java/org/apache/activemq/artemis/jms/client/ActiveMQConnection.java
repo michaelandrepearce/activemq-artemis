@@ -49,6 +49,7 @@ import org.apache.activemq.artemis.api.core.client.FailoverEventListener;
 import org.apache.activemq.artemis.api.core.client.FailoverEventType;
 import org.apache.activemq.artemis.api.core.client.SessionFailureListener;
 import org.apache.activemq.artemis.api.jms.ActiveMQJMSConstants;
+import org.apache.activemq.artemis.api.jms.ObjectMessageSerdes;
 import org.apache.activemq.artemis.core.client.impl.ClientSessionInternal;
 import org.apache.activemq.artemis.core.version.Version;
 import org.apache.activemq.artemis.reader.MessageUtil;
@@ -135,6 +136,8 @@ public class ActiveMQConnection extends ActiveMQConnectionForContextImpl impleme
    private ActiveMQConnectionFactory factoryReference;
 
    private final ConnectionFactoryOptions options;
+   
+   private final ObjectMessageSerdes objectMessageSerdes;
 
    // Constructors ---------------------------------------------------------------------------------
 
@@ -146,7 +149,8 @@ public class ActiveMQConnection extends ActiveMQConnectionForContextImpl impleme
                              final int dupsOKBatchSize,
                              final int transactionBatchSize,
                              final boolean cacheDestinations,
-                             final ClientSessionFactory sessionFactory) {
+                             final ClientSessionFactory sessionFactory,
+                             final ObjectMessageSerdes objectMessageSerdes) {
       this.options = options;
 
       this.username = username;
@@ -170,6 +174,8 @@ public class ActiveMQConnection extends ActiveMQConnectionForContextImpl impleme
       this.cacheDestinations = cacheDestinations;
 
       creationStack = new Exception();
+      
+      this.objectMessageSerdes = objectMessageSerdes;
    }
 
    /**
@@ -659,9 +665,9 @@ public class ActiveMQConnection extends ActiveMQConnectionForContextImpl impleme
                                               ClientSession session,
                                               int type) {
       if (isXA) {
-         return new ActiveMQXASession(options, this, transacted, true, acknowledgeMode, cacheDestinations, session, type);
+         return new ActiveMQXASession(options, this, transacted, true, acknowledgeMode, cacheDestinations, session, type, objectMessageSerdes);
       } else {
-         return new ActiveMQSession(options, this, transacted, false, acknowledgeMode, cacheDestinations, session, type);
+         return new ActiveMQSession(options, this, transacted, false, acknowledgeMode, cacheDestinations, session, type, objectMessageSerdes);
       }
    }
 

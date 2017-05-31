@@ -41,7 +41,7 @@ public final class ActiveMQQueueBrowser implements QueueBrowser {
 
    private final ConnectionFactoryOptions options;
 
-   private final ClientSession session;
+   private final ActiveMQSession session;
 
    private ClientConsumer consumer;
 
@@ -54,7 +54,7 @@ public final class ActiveMQQueueBrowser implements QueueBrowser {
    protected ActiveMQQueueBrowser(final ConnectionFactoryOptions options,
                                   final ActiveMQQueue queue,
                                   final String messageSelector,
-                                  final ClientSession session) throws JMSException {
+                                  final ActiveMQSession session) throws JMSException {
       this.options = options;
       this.session = session;
       this.queue = queue;
@@ -81,7 +81,7 @@ public final class ActiveMQQueueBrowser implements QueueBrowser {
       try {
          close();
 
-         consumer = session.createConsumer(queue.getSimpleAddress(), filterString, true);
+         consumer = session.getCoreSession().createConsumer(queue.getSimpleAddress(), filterString, true);
 
          return new BrowserEnumeration();
       } catch (ActiveMQException e) {
@@ -137,7 +137,7 @@ public final class ActiveMQQueueBrowser implements QueueBrowser {
          if (hasMoreElements()) {
             ClientMessage next = current;
             current = null;
-            msg = ActiveMQMessage.createMessage(next, session, options);
+            msg = ActiveMQMessage.createMessage(session.getObjectMessageSerdes(), next, session.getCoreSession(), options);
             try {
                msg.doBeforeReceive();
             } catch (Exception e) {

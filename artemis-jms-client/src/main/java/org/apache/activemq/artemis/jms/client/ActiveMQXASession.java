@@ -20,6 +20,7 @@ import javax.jms.XAQueueSession;
 import javax.jms.XATopicSession;
 
 import org.apache.activemq.artemis.api.core.client.ClientSession;
+import org.apache.activemq.artemis.api.jms.ObjectMessageSerdes;
 
 public class ActiveMQXASession extends ActiveMQSession implements XAQueueSession, XATopicSession {
 
@@ -38,7 +39,8 @@ public class ActiveMQXASession extends ActiveMQSession implements XAQueueSession
                                int ackMode,
                                boolean cacheDestinations,
                                ClientSession session,
-                               int sessionType) {
-      super(options, connection, transacted, xa, ackMode, cacheDestinations, session, sessionType);
+                               int sessionType,
+                               ObjectMessageSerdes objectMessageSerdes) {
+      super(options, connection, transacted, xa, ackMode, cacheDestinations, session, sessionType, objectMessageSerdes);
    }
 }

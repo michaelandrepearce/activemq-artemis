@@ -50,6 +50,7 @@ import org.apache.activemq.artemis.api.core.client.ClientSessionFactory;
 import org.apache.activemq.artemis.api.core.client.ServerLocator;
 import org.apache.activemq.artemis.api.jms.ActiveMQJMSConstants;
 import org.apache.activemq.artemis.api.jms.JMSFactoryType;
+import org.apache.activemq.artemis.api.jms.ObjectMessageSerdes;
 import org.apache.activemq.artemis.core.client.impl.ServerLocatorImpl;
 import org.apache.activemq.artemis.jms.referenceable.ConnectionFactoryObjectFactory;
 import org.apache.activemq.artemis.jms.referenceable.SerializableObjectRefAddr;
@@ -87,6 +88,8 @@ public class ActiveMQConnectionFactory implements ConnectionFactoryOptions, Exte
    private boolean cacheDestinations;
 
    private boolean finalizeChecks;
+   
+   private ObjectMessageSerdes objectMessageSerdes;
 
    @Override
    public void writeExternal(ObjectOutput out) throws IOException {
@@ -735,6 +738,15 @@ public class ActiveMQConnectionFactory implements ConnectionFactoryOptions, Exte
       serverLocator.setCompressLargeMessage(avoidLargeMessages);
    }
 
+   public synchronized ObjectMessageSerdes getObjectMessageSerdes() {
+      return objectMessageSerdes;
+   }
+
+   public synchronized void setObjectMessageSerdes(final ObjectMessageSerdes objectMessageSerdes) {
+      checkWrite();
+      this.objectMessageSerdes = objectMessageSerdes;
+   }
+   
    @Override
    public void close() {
       ServerLocator locator0 = serverLocator;
@@ -777,19 +789,19 @@ public class ActiveMQConnectionFactory implements ConnectionFactoryOptions, Exte
 
       if (isXA) {
          if (type == ActiveMQConnection.TYPE_GENERIC_CONNECTION) {
-            connection = new ActiveMQXAConnection(this, username, password, type, clientID, dupsOKBatchSize, transactionBatchSize, cacheDestinations, factory);
+            connection = new ActiveMQXAConnection(this, username, password, type, clientID, dupsOKBatchSize, transactionBatchSize, cacheDestinations, factory, objectMessageSerdes);
          } else if (type == ActiveMQConnection.TYPE_QUEUE_CONNECTION) {
-            connection = new ActiveMQXAConnection(this, username, password, type, clientID, dupsOKBatchSize, transactionBatchSize, cacheDestinations, factory);
+            connection = new ActiveMQXAConnection(this, username, password, type, clientID, dupsOKBatchSize, transactionBatchSize, cacheDestinations, factory, objectMessageSerdes);
          } else if (type == ActiveMQConnection.TYPE_TOPIC_CONNECTION) {
-            connection = new ActiveMQXAConnection(this, username, password, type, clientID, dupsOKBatchSize, transactionBatchSize, cacheDestinations, factory);
+            connection = new ActiveMQXAConnection(this, username, password, type, clientID, dupsOKBatchSize, transactionBatchSize, cacheDestinations, factory, objectMessageSerdes);
          }
       } else {
          if (type == ActiveMQConnection.TYPE_GENERIC_CONNECTION) {
-            connection = new ActiveMQConnection(this, username, password, type, clientID, dupsOKBatchSize, transactionBatchSize, cacheDestinations, factory);
+            connection = new ActiveMQConnection(this, username, password, type, clientID, dupsOKBatchSize, transactionBatchSize, cacheDestinations, factory, objectMessageSerdes);
          } else if (type == ActiveMQConnection.TYPE_QUEUE_CONNECTION) {
-            connection = new ActiveMQConnection(this, username, password, type, clientID, dupsOKBatchSize, transactionBatchSize, cacheDestinations, factory);
+            connection = new ActiveMQConnection(this, username, password, type, clientID, dupsOKBatchSize, transactionBatchSize, cacheDestinations, factory, objectMessageSerdes);
          } else if (type == ActiveMQConnection.TYPE_TOPIC_CONNECTION) {
-            connection = new ActiveMQConnection(this, username, password, type, clientID, dupsOKBatchSize, transactionBatchSize, cacheDestinations, factory);
+            connection = new ActiveMQConnection(this, username, password, type, clientID, dupsOKBatchSize, transactionBatchSize, cacheDestinations, factory, objectMessageSerdes);
          }
       }
 

@@ -43,6 +43,7 @@ import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.api.core.client.ClientMessage;
 import org.apache.activemq.artemis.api.core.client.ClientSession;
 import org.apache.activemq.artemis.api.jms.ActiveMQJMSConstants;
+import org.apache.activemq.artemis.api.jms.ObjectMessageSerdes;
 import org.apache.activemq.artemis.core.client.impl.ClientMessageInternal;
 import org.apache.activemq.artemis.api.core.RoutingType;
 import org.apache.activemq.artemis.reader.MessageUtil;
@@ -122,10 +123,11 @@ public class ActiveMQMessage implements javax.jms.Message {
    }
 
    public static ActiveMQMessage createMessage(final ClientMessage message, final ClientSession session) {
-      return createMessage(message, session, null);
+      return createMessage(null, message, session, null);
    }
 
-   public static ActiveMQMessage createMessage(final ClientMessage message,
+   public static ActiveMQMessage createMessage(final ObjectMessageSerdes objectMessageSerdes,
+                                               final ClientMessage message,
                                                final ClientSession session,
                                                final ConnectionFactoryOptions options) {
       int type = message.getType();
@@ -140,7 +142,11 @@ public class ActiveMQMessage implements javax.jms.Message {
          }
          case ActiveMQBytesMessage.TYPE: // 4
          {
-            msg = new ActiveMQBytesMessage(message, session);
+            if (objectMessageSerdes == null) {
+               msg = new ActiveMQBytesMessage(message, session);
+            } else {
+               msg = new ActiveMQObjectMessage(objectMessageSerdes, message, session, options);
+            }
             break;
          }
          case ActiveMQMapMessage.TYPE: // 5
@@ -148,8 +154,9 @@ public class ActiveMQMessage implements javax.jms.Message {
             msg = new ActiveMQMapMessage(message, session);
             break;
          }
-         case ActiveMQObjectMessage.TYPE: {
-            msg = new ActiveMQObjectMessage(message, session, options);
+         case ActiveMQObjectMessage.TYPE:  //2
+         {
+            msg = new ActiveMQObjectMessage(null, message, session, options);
             break;
          }
          case ActiveMQStreamMessage.TYPE: // 6

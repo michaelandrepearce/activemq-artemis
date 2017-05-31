@@ -28,6 +28,7 @@ import org.apache.activemq.artemis.api.core.ActiveMQException;
 import org.apache.activemq.artemis.api.core.Message;
 import org.apache.activemq.artemis.api.core.client.ClientMessage;
 import org.apache.activemq.artemis.api.core.client.ClientSession;
+import org.apache.activemq.artemis.api.jms.ObjectMessageSerdes;
 import org.apache.activemq.artemis.utils.ObjectInputStreamWithClassLoader;
 
 /**
@@ -46,36 +47,49 @@ public class ActiveMQObjectMessage extends ActiveMQMessage implements ObjectMess
 
    // keep a snapshot of the Serializable Object as a byte[] to provide Object isolation
    private byte[] data;
+   
+   private Serializable object;
+   
+   private final ObjectMessageSerdes objectMessageSerdes;
 
-   private final ConnectionFactoryOptions options;
+   private final ObjectMessageSerdes defaultObjectMessageSerdes;
+
 
    // Static --------------------------------------------------------
 
    // Constructors --------------------------------------------------
 
-   protected ActiveMQObjectMessage(final ClientSession session, ConnectionFactoryOptions options) {
+   protected ActiveMQObjectMessage(final ObjectMessageSerdes objectMessageSerdes,
+                                   final ClientSession session, ConnectionFactoryOptions options) {
       super(ActiveMQObjectMessage.TYPE, session);
-      this.options = options;
+      this.objectMessageSerdes = objectMessageSerdes;
+      this.defaultObjectMessageSerdes = new ActiveMQJavaSerialisationSerdes(options);
    }
 
-   protected ActiveMQObjectMessage(final ClientMessage message,
+   protected ActiveMQObjectMessage(final ObjectMessageSerdes objectMessageSerdes,
+                                   final ClientMessage message,
                                    final ClientSession session,
                                    ConnectionFactoryOptions options) {
       super(message, session);
-      this.options = options;
+      this.objectMessageSerdes = objectMessageSerdes;
+      this.defaultObjectMessageSerdes = new ActiveMQJavaSerialisationSerdes(options);
    }
 
    /**
     * A copy constructor for foreign JMS ObjectMessages.
     */
-   public ActiveMQObjectMessage(final ObjectMessage foreign,
+   public ActiveMQObjectMessage(final ObjectMessageSerdes objectMessageSerdes,
+                                final ObjectMessage foreign,
                                 final ClientSession session,
                                 ConnectionFactoryOptions options) throws JMSException {
       super(foreign, ActiveMQObjectMessage.TYPE, session);
 
       setObject(foreign.getObject());
-      this.options = options;
+      this.objectMessageSerdes = objectMessageSerdes;
+      this.defaultObjectMessageSerdes = new ActiveMQJavaSerialisationSerdes(options);
    }
+   
+   
 
    // Public --------------------------------------------------------
 
@@ -86,9 +100,16 @@ public class ActiveMQObjectMessage extends ActiveMQMessage implements ObjectMess
 
    @Override
    public void doBeforeSend() throws Exception {
+      if (data == null) {
+         if (objectMessageSerdes == null) {
+            data = defaultObjectMessageSerdes.serialize(message.getAddress(), object);
+         } else {
+            data = objectMessageSerdes.serialize(message.getAddress(), object);
+            message.setType(ActiveMQBytesMessage.TYPE);
+         }
+      }
       message.getBodyBuffer().clear();
       if (data != null) {
-         message.getBodyBuffer().writeInt(data.length);
          message.getBodyBuffer().writeBytes(data);
       }
 
@@ -99,7 +120,7 @@ public class ActiveMQObjectMessage extends ActiveMQMessage implements ObjectMess
    public void doBeforeReceive() throws ActiveMQException {
       super.doBeforeReceive();
       try {
-         int len = message.getBodyBuffer().readInt();
+         int len = message.getBodySize();
          data = new byte[len];
          message.getBodyBuffer().readBytes(data);
       } catch (Exception e) {
@@ -113,50 +134,21 @@ public class ActiveMQObjectMessage extends ActiveMQMessage implements ObjectMess
    @Override
    public void setObject(final Serializable object) throws JMSException {
       checkWrite();
-
-      if (object != null) {
-         try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
-
-            ObjectOutputStream oos = new ObjectOutputStream(baos);
-
-            oos.writeObject(object);
-
-            oos.flush();
-
-            data = baos.toByteArray();
-         } catch (Exception e) {
-            JMSException je = new JMSException("Failed to serialize object");
-            je.setLinkedException(e);
-            je.initCause(e);
-            throw je;
-         }
-      }
+      this.object = object;
    }
 
    // lazy deserialize the Object the first time the client requests it
    @Override
    public Serializable getObject() throws JMSException {
-      if (data == null || data.length == 0) {
-         return null;
+      if (this.object != null) {
+         return this.object;
       }
-
-      try (ObjectInputStreamWithClassLoader ois = new ObjectInputStreamWithClassLoader(new ByteArrayInputStream(data))) {
-         String blackList = getDeserializationBlackList();
-         if (blackList != null) {
-            ois.setBlackList(blackList);
-         }
-         String whiteList = getDeserializationWhiteList();
-         if (whiteList != null) {
-            ois.setWhiteList(whiteList);
-         }
-         Serializable object = (Serializable) ois.readObject();
-         return object;
-      } catch (Exception e) {
-         JMSException je = new JMSException(e.getMessage());
-         je.setStackTrace(e.getStackTrace());
-         throw je;
+      if (objectMessageSerdes != null) {
+         this.object = objectMessageSerdes.deserialize(message.getAddress(), data);
+      } else {
+         this.object = defaultObjectMessageSerdes.deserialize(message.getAddress(), data);
       }
+      return this.object;
    }
 
    @Override
@@ -186,19 +178,5 @@ public class ActiveMQObjectMessage extends ActiveMQMessage implements ObjectMess
       }
    }
 
-   private String getDeserializationBlackList() {
-      if (options == null) {
-         return null;
-      } else {
-         return options.getDeserializationBlackList();
-      }
-   }
-
-   private String getDeserializationWhiteList() {
-      if (options == null) {
-         return null;
-      } else {
-         return options.getDeserializationWhiteList();
-      }
-   }
+   
 }

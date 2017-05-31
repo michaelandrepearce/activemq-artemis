@@ -43,6 +43,7 @@ import org.apache.activemq.artemis.api.core.client.ClientProducer;
 import org.apache.activemq.artemis.api.core.client.ClientSession;
 import org.apache.activemq.artemis.api.core.client.SendAcknowledgementHandler;
 import org.apache.activemq.artemis.api.core.RoutingType;
+import org.apache.activemq.artemis.api.jms.ObjectMessageSerdes;
 import org.apache.activemq.artemis.utils.UUID;
 import org.apache.activemq.artemis.utils.UUIDGenerator;
 
@@ -59,6 +60,8 @@ public class ActiveMQMessageProducer implements MessageProducer, QueueSender, To
 
    private final ClientProducer clientProducer;
    private final ClientSession clientSession;
+   
+   private final ObjectMessageSerdes objectMessageSerdes;
 
    private boolean disableMessageID = false;
 
@@ -72,7 +75,8 @@ public class ActiveMQMessageProducer implements MessageProducer, QueueSender, To
    private final ActiveMQDestination defaultDestination;
    // Constructors --------------------------------------------------
 
-   protected ActiveMQMessageProducer(final ActiveMQConnection connection,
+   protected ActiveMQMessageProducer(final ObjectMessageSerdes objectMessageSerdes,
+                                     final ActiveMQConnection connection,
                                      final ClientProducer producer,
                                      final ActiveMQDestination defaultDestination,
                                      final ClientSession clientSession,
@@ -87,6 +91,8 @@ public class ActiveMQMessageProducer implements MessageProducer, QueueSender, To
       this.defaultDestination = defaultDestination;
 
       this.clientSession = clientSession;
+      
+      this.objectMessageSerdes = objectMessageSerdes;
    }
 
    // MessageProducer implementation --------------------------------
@@ -444,7 +450,7 @@ public class ActiveMQMessageProducer implements MessageProducer, QueueSender, To
          } else if (jmsMessage instanceof MapMessage) {
             activeMQJmsMessage = new ActiveMQMapMessage((MapMessage) jmsMessage, clientSession);
          } else if (jmsMessage instanceof ObjectMessage) {
-            activeMQJmsMessage = new ActiveMQObjectMessage((ObjectMessage) jmsMessage, clientSession, options);
+            activeMQJmsMessage = new ActiveMQObjectMessage(objectMessageSerdes, (ObjectMessage) jmsMessage, clientSession, options);
          } else if (jmsMessage instanceof StreamMessage) {
             activeMQJmsMessage = new ActiveMQStreamMessage((StreamMessage) jmsMessage, clientSession);
          } else if (jmsMessage instanceof TextMessage) {

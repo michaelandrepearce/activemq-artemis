@@ -25,6 +25,7 @@ import javax.jms.XATopicConnection;
 import javax.jms.XATopicSession;
 
 import org.apache.activemq.artemis.api.core.client.ClientSessionFactory;
+import org.apache.activemq.artemis.api.jms.ObjectMessageSerdes;
 
 /**
  * ActiveMQ Artemis implementation of a JMS XAConnection.
@@ -42,8 +43,9 @@ public final class ActiveMQXAConnection extends ActiveMQConnection implements XA
                                final int dupsOKBatchSize,
                                final int transactionBatchSize,
                                final boolean cacheDestinations,
-                               final ClientSessionFactory sessionFactory) {
-      super(options, username, password, connectionType, clientID, dupsOKBatchSize, transactionBatchSize, cacheDestinations, sessionFactory);
+                               final ClientSessionFactory sessionFactory,
+                               final ObjectMessageSerdes objectMessageSerdes) {
+      super(options, username, password, connectionType, clientID, dupsOKBatchSize, transactionBatchSize, cacheDestinations, sessionFactory, objectMessageSerdes);
    }
 
    @Override

@@ -68,7 +68,7 @@ public class JMSMessageListenerWrapper implements MessageHandler {
     */
    @Override
    public void onMessage(final ClientMessage message) {
-      ActiveMQMessage msg = ActiveMQMessage.createMessage(message, session.getCoreSession(), options);
+      ActiveMQMessage msg = ActiveMQMessage.createMessage(session.getObjectMessageSerdes(), message, session.getCoreSession(), options);
 
       if (individualACK) {
          msg.setIndividualAcknowledge();

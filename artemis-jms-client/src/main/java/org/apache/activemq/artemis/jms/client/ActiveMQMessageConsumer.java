@@ -218,7 +218,7 @@ public final class ActiveMQMessageConsumer implements QueueReceiver, TopicSubscr
             boolean needSession = ackMode == Session.CLIENT_ACKNOWLEDGE ||
                ackMode == ActiveMQJMSConstants.INDIVIDUAL_ACKNOWLEDGE ||
                coreMessage.getType() == ActiveMQObjectMessage.TYPE;
-            jmsMsg = ActiveMQMessage.createMessage(coreMessage, needSession ? coreSession : null, options);
+            jmsMsg = ActiveMQMessage.createMessage(session.getObjectMessageSerdes(), coreMessage, needSession ? coreSession : null, options);
 
             try {
                jmsMsg.doBeforeReceive();

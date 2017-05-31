@@ -59,6 +59,7 @@ import org.apache.activemq.artemis.api.core.client.ClientSession;
 import org.apache.activemq.artemis.api.core.client.ClientSession.AddressQuery;
 import org.apache.activemq.artemis.api.core.client.ClientSession.QueueQuery;
 import org.apache.activemq.artemis.api.core.RoutingType;
+import org.apache.activemq.artemis.api.jms.ObjectMessageSerdes;
 import org.apache.activemq.artemis.selector.filter.FilterException;
 import org.apache.activemq.artemis.selector.impl.SelectorParser;
 import org.apache.activemq.artemis.utils.SelectorTranslator;
@@ -103,6 +104,8 @@ public class ActiveMQSession implements QueueSession, TopicSession {
 
    private final Map<String, Queue> queueCache = new ConcurrentHashMap<>();
 
+   private final ObjectMessageSerdes objectMessageSerdes;
+
    // Constructors --------------------------------------------------
 
    protected ActiveMQSession(final ConnectionFactoryOptions options,
@@ -112,7 +115,8 @@ public class ActiveMQSession implements QueueSession, TopicSession {
                              final int ackMode,
                              final boolean cacheDestination,
                              final ClientSession session,
-                             final int sessionType) {
+                             final int sessionType,
+                             final ObjectMessageSerdes objectMessageSerdes) {
       this.options = options;
 
       this.connection = connection;
@@ -128,6 +132,8 @@ public class ActiveMQSession implements QueueSession, TopicSession {
       this.xa = xa;
 
       this.cacheDestination = cacheDestination;
+      
+      this.objectMessageSerdes = objectMessageSerdes;
    }
 
    // Session implementation ----------------------------------------
@@ -157,14 +163,14 @@ public class ActiveMQSession implements QueueSession, TopicSession {
    public ObjectMessage createObjectMessage() throws JMSException {
       checkClosed();
 
-      return new ActiveMQObjectMessage(session, options);
+      return new ActiveMQObjectMessage(objectMessageSerdes, session, options);
    }
 
    @Override
    public ObjectMessage createObjectMessage(final Serializable object) throws JMSException {
       checkClosed();
 
-      ActiveMQObjectMessage msg = new ActiveMQObjectMessage(session, options);
+      ActiveMQObjectMessage msg = new ActiveMQObjectMessage(objectMessageSerdes, session, options);
 
       msg.setObject(object);
 
@@ -212,6 +218,10 @@ public class ActiveMQSession implements QueueSession, TopicSession {
       checkClosed();
 
       return ackMode;
+   }
+   
+   public ObjectMessageSerdes getObjectMessageSerdes() {
+      return objectMessageSerdes;
    }
 
    public boolean isXA() {
@@ -333,7 +343,7 @@ public class ActiveMQSession implements QueueSession, TopicSession {
 
          ClientProducer producer = session.createProducer(jbd == null ? null : jbd.getSimpleAddress());
 
-         return new ActiveMQMessageProducer(connection, producer, jbd, session, options);
+         return new ActiveMQMessageProducer(objectMessageSerdes, connection, producer, jbd, session, options);
       } catch (ActiveMQException e) {
          throw JMSExceptionHelper.convertFromActiveMQException(e);
       }
@@ -858,7 +868,7 @@ public class ActiveMQSession implements QueueSession, TopicSession {
          throw JMSExceptionHelper.convertFromActiveMQException(e);
       }
 
-      return new ActiveMQQueueBrowser(options, (ActiveMQQueue) activeMQDestination, filterString, session);
+      return new ActiveMQQueueBrowser(options, (ActiveMQQueue) activeMQDestination, filterString, this);
 
    }
 
