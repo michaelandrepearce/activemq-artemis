@@ -2617,6 +2617,14 @@
                </xsd:annotation>
             </xsd:element>
 
+            <xsd:element name="config-delete-queues" type="xsd:boolean" default="true" maxOccurs="1" minOccurs="0">
+               <xsd:annotation>
+                  <xsd:documentation>
+                     whether or not to delete non-auto created queues if they no longer exist in the configuration.
+                  </xsd:documentation>
+               </xsd:annotation>
+            </xsd:element>
+
             <xsd:element name="auto-create-addresses" type="xsd:boolean" default="true" maxOccurs="1" minOccurs="0">
                <xsd:annotation>
                   <xsd:documentation>
@@ -2631,6 +2639,14 @@
                <xsd:annotation>
                   <xsd:documentation>
                      whether or not to delete auto-created addresses when it no longer has any queues
+                  </xsd:documentation>
+               </xsd:annotation>
+            </xsd:element>
+
+            <xsd:element name="config-delete-addresses" type="xsd:boolean" default="true" maxOccurs="1" minOccurs="0">
+               <xsd:annotation>
+                  <xsd:documentation>
+                     whether or not to delete non-auto created addressed if they no longer exist in the configuration.
                   </xsd:documentation>
                </xsd:annotation>
             </xsd:element>

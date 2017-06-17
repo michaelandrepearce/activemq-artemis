@@ -71,9 +71,13 @@ public class AddressSettings implements Mergeable<AddressSettings>, Serializable
 
    public static final boolean DEFAULT_AUTO_DELETE_QUEUES = true;
 
+   public static final boolean DEFAULT_CONFIG_DELETE_QUEUES = false;
+
    public static final boolean DEFAULT_AUTO_CREATE_ADDRESSES = true;
 
    public static final boolean DEFAULT_AUTO_DELETE_ADDRESSES = true;
+
+   public static final boolean DEFAULT_CONFIG_DELETE_ADDRESSES = false;
 
    public static final long DEFAULT_REDISTRIBUTION_DELAY = -1;
 
@@ -148,9 +152,13 @@ public class AddressSettings implements Mergeable<AddressSettings>, Serializable
 
    private Boolean autoDeleteQueues = null;
 
+   private Boolean configDeleteQueues = null;
+
    private Boolean autoCreateAddresses = null;
 
    private Boolean autoDeleteAddresses = null;
+
+   private Boolean configDeleteAddresses = null;
 
    private Integer managementBrowsePageSize = AddressSettings.MANAGEMENT_BROWSE_PAGE_SIZE;
 
@@ -194,8 +202,10 @@ public class AddressSettings implements Mergeable<AddressSettings>, Serializable
       this.autoDeleteJmsTopics = other.autoDeleteJmsTopics;
       this.autoCreateQueues = other.autoCreateQueues;
       this.autoDeleteQueues = other.autoDeleteQueues;
+      this.configDeleteQueues = other.configDeleteQueues;
       this.autoCreateAddresses = other.autoCreateAddresses;
       this.autoDeleteAddresses = other.autoDeleteAddresses;
+      this.configDeleteAddresses = other.configDeleteAddresses;
       this.managementBrowsePageSize = other.managementBrowsePageSize;
       this.queuePrefetch = other.queuePrefetch;
       this.maxSizeBytesRejectThreshold = other.maxSizeBytesRejectThreshold;
@@ -270,6 +280,15 @@ public class AddressSettings implements Mergeable<AddressSettings>, Serializable
       return this;
    }
 
+   public boolean isConfigDeleteQueues() {
+      return configDeleteQueues != null ? configDeleteQueues : AddressSettings.DEFAULT_CONFIG_DELETE_QUEUES;
+   }
+
+   public AddressSettings setConfigDeleteQueues(Boolean configDeleteQueues) {
+      this.configDeleteQueues = configDeleteQueues;
+      return this;
+   }
+
    public boolean isAutoCreateAddresses() {
       return autoCreateAddresses != null ? autoCreateAddresses : AddressSettings.DEFAULT_AUTO_CREATE_ADDRESSES;
    }
@@ -285,6 +304,15 @@ public class AddressSettings implements Mergeable<AddressSettings>, Serializable
 
    public AddressSettings setAutoDeleteAddresses(Boolean autoDeleteAddresses) {
       this.autoDeleteAddresses = autoDeleteAddresses;
+      return this;
+   }
+
+   public boolean isConfigDeleteAddresses() {
+      return configDeleteAddresses != null ? configDeleteAddresses : AddressSettings.DEFAULT_CONFIG_DELETE_ADDRESSES;
+   }
+
+   public AddressSettings setConfigDeleteAddresses(Boolean configDeleteAddresses) {
+      this.configDeleteAddresses = configDeleteAddresses;
       return this;
    }
 
@@ -594,11 +622,17 @@ public class AddressSettings implements Mergeable<AddressSettings>, Serializable
       if (autoDeleteQueues == null) {
          autoDeleteQueues = merged.autoDeleteQueues;
       }
+      if (configDeleteQueues == null) {
+         configDeleteQueues = merged.configDeleteQueues;
+      }
       if (autoCreateAddresses == null) {
          autoCreateAddresses = merged.autoCreateAddresses;
       }
       if (autoDeleteAddresses == null) {
          autoDeleteAddresses = merged.autoDeleteAddresses;
+      }
+      if (configDeleteAddresses == null) {
+         configDeleteAddresses = merged.configDeleteAddresses;
       }
       if (managementBrowsePageSize == null) {
          managementBrowsePageSize = merged.managementBrowsePageSize;
@@ -687,9 +721,13 @@ public class AddressSettings implements Mergeable<AddressSettings>, Serializable
 
       autoDeleteQueues = BufferHelper.readNullableBoolean(buffer);
 
+      configDeleteQueues = BufferHelper.readNullableBoolean(buffer);
+
       autoCreateAddresses = BufferHelper.readNullableBoolean(buffer);
 
       autoDeleteAddresses = BufferHelper.readNullableBoolean(buffer);
+
+      configDeleteAddresses = BufferHelper.readNullableBoolean(buffer);
 
       managementBrowsePageSize = BufferHelper.readNullableInteger(buffer);
 
@@ -732,8 +770,10 @@ public class AddressSettings implements Mergeable<AddressSettings>, Serializable
          BufferHelper.sizeOfNullableBoolean(autoDeleteJmsTopics) +
          BufferHelper.sizeOfNullableBoolean(autoCreateQueues) +
          BufferHelper.sizeOfNullableBoolean(autoDeleteQueues) +
+         BufferHelper.sizeOfNullableBoolean(configDeleteQueues) +
          BufferHelper.sizeOfNullableBoolean(autoCreateAddresses) +
          BufferHelper.sizeOfNullableBoolean(autoDeleteAddresses) +
+         BufferHelper.sizeOfNullableBoolean(configDeleteAddresses) +
          BufferHelper.sizeOfNullableInteger(managementBrowsePageSize) +
          BufferHelper.sizeOfNullableLong(maxSizeBytesRejectThreshold) +
          BufferHelper.sizeOfNullableInteger(defaultMaxConsumers) +
@@ -794,9 +834,13 @@ public class AddressSettings implements Mergeable<AddressSettings>, Serializable
 
       BufferHelper.writeNullableBoolean(buffer, autoDeleteQueues);
 
+      BufferHelper.writeNullableBoolean(buffer, configDeleteQueues);
+
       BufferHelper.writeNullableBoolean(buffer, autoCreateAddresses);
 
       BufferHelper.writeNullableBoolean(buffer, autoDeleteAddresses);
+
+      BufferHelper.writeNullableBoolean(buffer, configDeleteAddresses);
 
       BufferHelper.writeNullableInteger(buffer, managementBrowsePageSize);
 
@@ -843,8 +887,10 @@ public class AddressSettings implements Mergeable<AddressSettings>, Serializable
       result = prime * result + ((autoDeleteJmsTopics == null) ? 0 : autoDeleteJmsTopics.hashCode());
       result = prime * result + ((autoCreateQueues == null) ? 0 : autoCreateQueues.hashCode());
       result = prime * result + ((autoDeleteQueues == null) ? 0 : autoDeleteQueues.hashCode());
+      result = prime * result + ((configDeleteQueues == null) ? 0 : configDeleteQueues.hashCode());
       result = prime * result + ((autoCreateAddresses == null) ? 0 : autoCreateAddresses.hashCode());
       result = prime * result + ((autoDeleteAddresses == null) ? 0 : autoDeleteAddresses.hashCode());
+      result = prime * result + ((configDeleteAddresses == null) ? 0 : configDeleteAddresses.hashCode());
       result = prime * result + ((managementBrowsePageSize == null) ? 0 : managementBrowsePageSize.hashCode());
       result = prime * result + ((queuePrefetch == null) ? 0 : queuePrefetch.hashCode());
       result = prime * result + ((maxSizeBytesRejectThreshold == null) ? 0 : maxSizeBytesRejectThreshold.hashCode());
@@ -992,6 +1038,11 @@ public class AddressSettings implements Mergeable<AddressSettings>, Serializable
             return false;
       } else if (!autoDeleteQueues.equals(other.autoDeleteQueues))
          return false;
+      if (configDeleteQueues == null) {
+         if (other.configDeleteQueues != null)
+            return false;
+      } else if (!configDeleteQueues.equals(other.configDeleteQueues))
+         return false;
       if (autoCreateAddresses == null) {
          if (other.autoCreateAddresses != null)
             return false;
@@ -1001,6 +1052,11 @@ public class AddressSettings implements Mergeable<AddressSettings>, Serializable
          if (other.autoDeleteAddresses != null)
             return false;
       } else if (!autoDeleteAddresses.equals(other.autoDeleteAddresses))
+         return false;
+      if (configDeleteAddresses == null) {
+         if (other.configDeleteAddresses != null)
+            return false;
+      } else if (!configDeleteAddresses.equals(other.configDeleteAddresses))
          return false;
       if (managementBrowsePageSize == null) {
          if (other.managementBrowsePageSize != null)
@@ -1101,10 +1157,14 @@ public class AddressSettings implements Mergeable<AddressSettings>, Serializable
          autoCreateQueues +
          ", autoDeleteQueues=" +
          autoDeleteQueues +
+         ", configDeleteQueues=" +
+         configDeleteQueues +
          ", autoCreateAddresses=" +
          autoCreateAddresses +
          ", autoDeleteAddresses=" +
          autoDeleteAddresses +
+         ", configDeleteAddresses=" +
+         configDeleteAddresses +
          ", managementBrowsePageSize=" +
          managementBrowsePageSize +
          ", defaultMaxConsumers=" +

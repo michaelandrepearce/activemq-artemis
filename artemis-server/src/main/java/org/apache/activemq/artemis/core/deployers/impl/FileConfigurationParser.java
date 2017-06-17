@@ -193,9 +193,13 @@ public final class FileConfigurationParser extends XMLConfigurationUtil {
 
    private static final String AUTO_DELETE_QUEUES = "auto-delete-queues";
 
+   private static final String CONFIG_DELETE_QUEUES = "config-delete-queues";
+
    private static final String AUTO_CREATE_ADDRESSES = "auto-create-addresses";
 
    private static final String AUTO_DELETE_ADDRESSES = "auto-delete-addresses";
+
+   private static final String CONFIG_DELETE_ADDRESSES = "config-delete-addresses";
 
    private static final String DEFAULT_PURGE_ON_NO_CONSUMERS = "default-purge-on-no-consumers";
 
@@ -977,10 +981,14 @@ public final class FileConfigurationParser extends XMLConfigurationUtil {
             addressSettings.setAutoCreateQueues(XMLUtil.parseBoolean(child));
          } else if (AUTO_DELETE_QUEUES.equalsIgnoreCase(name)) {
             addressSettings.setAutoDeleteQueues(XMLUtil.parseBoolean(child));
+         } else if (CONFIG_DELETE_QUEUES.equalsIgnoreCase(name)) {
+            addressSettings.setConfigDeleteQueues(XMLUtil.parseBoolean(child));
          } else if (AUTO_CREATE_ADDRESSES.equalsIgnoreCase(name)) {
             addressSettings.setAutoCreateAddresses(XMLUtil.parseBoolean(child));
          } else if (AUTO_DELETE_ADDRESSES.equalsIgnoreCase(name)) {
             addressSettings.setAutoDeleteAddresses(XMLUtil.parseBoolean(child));
+         } else if (CONFIG_DELETE_ADDRESSES.equalsIgnoreCase(name)) {
+            addressSettings.setConfigDeleteAddresses(XMLUtil.parseBoolean(child));
          } else if (MANAGEMENT_BROWSE_PAGE_SIZE.equalsIgnoreCase(name)) {
             addressSettings.setManagementBrowsePageSize(XMLUtil.parseInt(child));
          } else if (DEFAULT_PURGE_ON_NO_CONSUMERS.equalsIgnoreCase(name)) {

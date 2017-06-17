@@ -47,6 +47,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import org.apache.activemq.artemis.api.config.ActiveMQDefaultConfiguration;
 import org.apache.activemq.artemis.api.core.ActiveMQDeleteAddressException;
@@ -2238,6 +2239,9 @@ public class ActiveMQServerImpl implements ActiveMQServer {
       // Deploy any predefined queues
       deployQueuesFromConfiguration();
 
+      // Undeploy any addresses and queues not in config
+      undeployAddressesAndQueueNotInConfiguration();
+
       // We need to call this here, this gives any dependent server a chance to deploy its own addresses
       // this needs to be done before clustering is fully activated
       callActivateCallbacks();
@@ -2311,6 +2315,53 @@ public class ActiveMQServerImpl implements ActiveMQServer {
       for (SecuritySettingPlugin securitySettingPlugin : configuration.getSecuritySettingPlugins()) {
          securitySettingPlugin.setSecurityRepository(securityRepository);
       }
+   }
+
+   private void undeployAddressesAndQueueNotInConfiguration() throws Exception {
+      undeployAddressesAndQueueNotInConfiguration(configuration);
+   }
+
+   private void undeployAddressesAndQueueNotInConfiguration(Configuration configuration) throws Exception {
+      Set<String> addressesInConfig = configuration.getAddressConfigurations().stream()
+                                                   .map(CoreAddressConfiguration::getName)
+                                                   .collect(Collectors.toSet());
+
+      Set<String> queuesInConfig = configuration.getAddressConfigurations().stream()
+                                                .map(CoreAddressConfiguration::getQueueConfigurations)
+                                                .flatMap(List::stream).map(CoreQueueConfiguration::getName)
+                                                .collect(Collectors.toSet());
+
+      for (SimpleString addressName : listAddressNames()) {
+         AddressSettings addressSettings = getAddressSettingsRepository().getMatch(addressName.toString());
+
+         if (!addressesInConfig.contains(addressName.toString()) && addressSettings.isConfigDeleteAddresses()) {
+            for (Queue queue : listQueues(addressName)) {
+               ActiveMQServerLogger.LOGGER.undeployQueue(queue.getName());
+               queue.deleteQueue(true);
+            }
+            ActiveMQServerLogger.LOGGER.undeployAddress(addressName);
+            removeAddressInfo(addressName, null);
+         } else if (addressSettings.isConfigDeleteQueues()) {
+            for (Queue queue : listConfiguredQueues(addressName)) {
+               if (!queuesInConfig.contains(queue.getName().toString())) {
+                  ActiveMQServerLogger.LOGGER.undeployQueue(queue.getName());
+                  queue.deleteQueue(true);
+               }
+            }
+         }
+      }
+   }
+
+   private Set<SimpleString> listAddressNames() {
+      return postOffice.getAddresses();
+   }
+
+   private List<Queue> listConfiguredQueues(SimpleString address) throws Exception {
+      return listQueues(address).stream().filter(queue -> !queue.isAutoCreated() && !queue.isInternalQueue()).collect(Collectors.toList());
+   }
+
+   private List<Queue> listQueues(SimpleString address) throws Exception {
+      return postOffice.listQueuesForAddress(address);
    }
 
    private void deployAddressesFromConfiguration() throws Exception {
@@ -2816,8 +2867,9 @@ public class ActiveMQServerImpl implements ActiveMQServer {
                deployDivert(divertConfig);
             }
          }
-         ActiveMQServerLogger.LOGGER.reloadingConfiguration("addresses");
+         ActiveMQServerLogger.LOGGER.reloadingConfiguration("deploy addresses");
          deployAddressesFromConfiguration(config);
+         undeployAddressesAndQueueNotInConfiguration(config);
       }
    }
 
