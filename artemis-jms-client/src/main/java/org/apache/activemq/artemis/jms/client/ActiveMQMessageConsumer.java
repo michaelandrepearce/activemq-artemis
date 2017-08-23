@@ -219,7 +219,7 @@ public final class ActiveMQMessageConsumer implements QueueReceiver, TopicSubscr
                ackMode == ActiveMQJMSConstants.INDIVIDUAL_ACKNOWLEDGE ||
                coreMessage.getType() == ActiveMQObjectMessage.TYPE;
             jmsMsg = ActiveMQMessage.createMessage(coreMessage, needSession ? coreSession : null, options);
-
+            jmsMsg.setAcknowledgMode(session.getAcknowledgeMode());
             try {
                jmsMsg.doBeforeReceive();
             } catch (IndexOutOfBoundsException ioob) {
@@ -235,12 +235,7 @@ public final class ActiveMQMessageConsumer implements QueueReceiver, TopicSubscr
 
             // We Do the ack after doBeforeReceive, as in the case of large messages, this may fail so we don't want messages redelivered
             // https://issues.jboss.org/browse/JBPAPP-6110
-            if (session.getAcknowledgeMode() == ActiveMQJMSConstants.INDIVIDUAL_ACKNOWLEDGE) {
-               jmsMsg.setIndividualAcknowledge();
-            } else if (session.getAcknowledgeMode() == Session.CLIENT_ACKNOWLEDGE) {
-               jmsMsg.setClientAcknowledge();
-               coreMessage.acknowledge();
-            } else {
+            if (!(session.getAcknowledgeMode() == ActiveMQJMSConstants.INDIVIDUAL_ACKNOWLEDGE || session.getAcknowledgeMode() == ActiveMQJMSConstants.ASYNC_INDIVIDUAL_ACKNOWLEDGE )) {
                coreMessage.acknowledge();
             }
          }

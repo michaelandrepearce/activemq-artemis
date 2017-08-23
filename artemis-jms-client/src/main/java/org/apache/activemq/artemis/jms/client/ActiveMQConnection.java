@@ -597,20 +597,23 @@ public class ActiveMQConnection extends ActiveMQConnectionForContextImpl impleme
 
       try {
          ClientSession session;
-         boolean isBlockOnAcknowledge = sessionFactory.getServerLocator().isBlockOnAcknowledge();
          int ackBatchSize = sessionFactory.getServerLocator().getAckBatchSize();
          if (acknowledgeMode == Session.SESSION_TRANSACTED) {
-            session = sessionFactory.createSession(username, password, isXA, false, false, sessionFactory.getServerLocator().isPreAcknowledge(), transactionBatchSize);
+            session = sessionFactory.createSession(username, password, isXA, false, false, false, transactionBatchSize);
          } else if (acknowledgeMode == Session.AUTO_ACKNOWLEDGE) {
-            session = sessionFactory.createSession(username, password, isXA, true, true, sessionFactory.getServerLocator().isPreAcknowledge(), 0);
+            session = sessionFactory.createSession(username, password, isXA, true, true, false, 0);
          } else if (acknowledgeMode == Session.DUPS_OK_ACKNOWLEDGE) {
-            session = sessionFactory.createSession(username, password, isXA, true, true, sessionFactory.getServerLocator().isPreAcknowledge(), dupsOKBatchSize);
+            session = sessionFactory.createSession(username, password, isXA, true, true, false, dupsOKBatchSize);
          } else if (acknowledgeMode == Session.CLIENT_ACKNOWLEDGE) {
-            session = sessionFactory.createSession(username, password, isXA, true, false, sessionFactory.getServerLocator().isPreAcknowledge(), isBlockOnAcknowledge ? transactionBatchSize : ackBatchSize);
+            session = sessionFactory.createSession(username, password, isXA, true, false, false,  transactionBatchSize);
          } else if (acknowledgeMode == ActiveMQJMSConstants.INDIVIDUAL_ACKNOWLEDGE) {
-            session = sessionFactory.createSession(username, password, isXA, true, false, false, isBlockOnAcknowledge ? transactionBatchSize : ackBatchSize);
+            session = sessionFactory.createSession(username, password, isXA, true, false, false, transactionBatchSize);
          } else if (acknowledgeMode == ActiveMQJMSConstants.PRE_ACKNOWLEDGE) {
             session = sessionFactory.createSession(username, password, isXA, true, false, true, transactionBatchSize);
+         } else if (acknowledgeMode == ActiveMQJMSConstants.ASYNC_CLIENT_ACKNOWLEDGE) {
+            session = sessionFactory.createSession(username, password, isXA, true, false, false, ackBatchSize);
+         } else if (acknowledgeMode == ActiveMQJMSConstants.ASYNC_INDIVIDUAL_ACKNOWLEDGE) {
+            session = sessionFactory.createSession(username, password, isXA, true, false, false, ackBatchSize);
          } else {
             throw new JMSRuntimeException("Invalid ackmode: " + acknowledgeMode);
          }

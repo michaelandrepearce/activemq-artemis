@@ -25,6 +25,7 @@ import javax.jms.JMSRuntimeException;
 import javax.jms.Message;
 import javax.jms.MessageFormatException;
 import javax.jms.MessageNotWriteableException;
+import javax.jms.Session;
 import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.CompositeDataSupport;
 import java.io.InputStream;
@@ -199,9 +200,7 @@ public class ActiveMQMessage implements javax.jms.Message {
    // Cache it
    private String jmsType;
 
-   private boolean individualAck;
-
-   private boolean clientAck;
+   private int acknowledgMode;
 
    private long jmsDeliveryTime;
 
@@ -716,11 +715,14 @@ public class ActiveMQMessage implements javax.jms.Message {
             if (session.isClosed()) {
                throw ActiveMQClientMessageBundle.BUNDLE.sessionClosed();
             }
-            if (individualAck) {
+            if (acknowledgMode == ActiveMQJMSConstants.INDIVIDUAL_ACKNOWLEDGE || acknowledgMode == ActiveMQJMSConstants.ASYNC_CLIENT_ACKNOWLEDGE) {
                message.individualAcknowledge();
             }
-            if (clientAck || individualAck) {
-               session.commit(session.isBlockOnAcknowledge());
+            if (acknowledgMode == Session.CLIENT_ACKNOWLEDGE || acknowledgMode == ActiveMQJMSConstants.INDIVIDUAL_ACKNOWLEDGE) {
+               session.commit();
+            } 
+            if (acknowledgMode == ActiveMQJMSConstants.ASYNC_CLIENT_ACKNOWLEDGE || acknowledgMode == ActiveMQJMSConstants.ASYNC_INDIVIDUAL_ACKNOWLEDGE) {
+               session.commit(false);
             }
          } catch (ActiveMQException e) {
             throw JMSExceptionHelper.convertFromActiveMQException(e);
@@ -779,13 +781,9 @@ public class ActiveMQMessage implements javax.jms.Message {
    }
 
    // Public --------------------------------------------------------
-
-   public void setIndividualAcknowledge() {
-      this.individualAck = true;
-   }
-
-   public void setClientAcknowledge() {
-      this.clientAck = true;
+   
+   public void setAcknowledgMode(int acknowledgMode) {
+      this.acknowledgMode = acknowledgMode;
    }
 
    public void resetMessageID(final String newMsgID) {
