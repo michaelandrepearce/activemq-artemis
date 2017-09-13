@@ -62,6 +62,7 @@ import io.netty.channel.local.LocalServerChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.ssl.SslHandler;
+import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.util.ResourceLeakDetector;
 import io.netty.util.concurrent.GenericFutureListener;
 import io.netty.util.concurrent.GlobalEventExecutor;
@@ -163,6 +164,8 @@ public class NettyAcceptor extends AbstractAcceptor {
    private final boolean verifyHost;
 
    private final String kerb5Config;
+
+   private final int readTimeout;
 
    private final boolean tcpNoDelay;
 
@@ -276,7 +279,7 @@ public class NettyAcceptor extends AbstractAcceptor {
          needClientAuth = TransportConstants.DEFAULT_NEED_CLIENT_AUTH;
          verifyHost = TransportConstants.DEFAULT_VERIFY_HOST;
       }
-
+      readTimeout = ConfigurationHelper.getIntProperty(TransportConstants.READ_TIMEOUT_PROPNAME, TransportConstants.DEFAULT_READ_TIMEOUT, configuration);
       tcpNoDelay = ConfigurationHelper.getBooleanProperty(TransportConstants.TCP_NODELAY_PROPNAME, TransportConstants.DEFAULT_TCP_NODELAY, configuration);
       tcpSendBufferSize = ConfigurationHelper.getIntProperty(TransportConstants.TCP_SENDBUFFER_SIZE_PROPNAME, TransportConstants.DEFAULT_TCP_SENDBUFFER_SIZE, configuration);
       tcpReceiveBufferSize = ConfigurationHelper.getIntProperty(TransportConstants.TCP_RECEIVEBUFFER_SIZE_PROPNAME, TransportConstants.DEFAULT_TCP_RECEIVEBUFFER_SIZE, configuration);
@@ -361,6 +364,9 @@ public class NettyAcceptor extends AbstractAcceptor {
                pipeline.addLast("sslHandshakeExceptionHandler", new SslHandshakeExceptionHandler());
             }
             pipeline.addLast(protocolHandler.getProtocolDecoder());
+            if (readTimeout > 0) {
+               pipeline.addLast("readTimeoutHandler", new ReadTimeoutHandler(readTimeout));
+            }
          }
       };
       bootstrap.childHandler(factory);

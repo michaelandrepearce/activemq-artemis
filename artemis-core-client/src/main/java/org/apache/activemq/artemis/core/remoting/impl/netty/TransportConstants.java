@@ -111,6 +111,8 @@ public class TransportConstants {
 
    public static final String NETTY_VERSION;
 
+   public static final String READ_TIMEOUT_PROPNAME = "readTimeout";
+
    /**
     * Disable Nagle's algorithm.<br>
     * Valid for (client) Sockets.
@@ -196,6 +198,8 @@ public class TransportConstants {
    public static final boolean DEFAULT_VERIFY_HOST = false;
 
    public static final boolean DEFAULT_USE_DEFAULT_SSL_CONTEXT = false;
+
+   public static final int DEFAULT_READ_TIMEOUT = -1;
 
    public static final boolean DEFAULT_TCP_NODELAY = true;
 

@@ -16,6 +16,7 @@
  */
 package org.apache.activemq.artemis.core.client;
 
+import io.netty.handler.timeout.ReadTimeoutException;
 import org.apache.activemq.artemis.api.core.ActiveMQExceptionType;
 import org.apache.activemq.artemis.api.core.Interceptor;
 import org.apache.activemq.artemis.core.protocol.core.Packet;
@@ -541,4 +542,9 @@ public interface ActiveMQClientLogger extends BasicLogger {
    @Message(id = 214033, value = "Cannot resolve host ",
            format = Message.Format.MESSAGE_FORMAT)
    void unableToResolveHost(@Cause UnknownHostException e);
+
+   @LogMessage(level = Logger.Level.ERROR)
+   @Message(id = 214034, value = "Connection readTimeout has occurred.",
+       format = Message.Format.MESSAGE_FORMAT)
+   void readTimeout(@Cause ReadTimeoutException e);
 }

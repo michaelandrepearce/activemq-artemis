@@ -21,6 +21,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.group.ChannelGroup;
+import io.netty.handler.timeout.ReadTimeoutException;
 import org.apache.activemq.artemis.api.core.ActiveMQException;
 import org.apache.activemq.artemis.core.buffers.impl.ChannelBufferWrapper;
 import org.apache.activemq.artemis.core.client.ActiveMQClientLogger;
@@ -88,6 +89,9 @@ public class ActiveMQChannelHandler extends ChannelDuplexHandler {
    public void exceptionCaught(final ChannelHandlerContext ctx, final Throwable cause) throws Exception {
       if (!active) {
          return;
+      }
+      if (cause instanceof ReadTimeoutException) {
+         ActiveMQClientLogger.LOGGER.readTimeout((ReadTimeoutException) cause);
       }
       // We don't want to log this - since it is normal for this to happen during failover/reconnect
       // and we don't want to spew out stack traces in that event
