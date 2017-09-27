@@ -64,6 +64,7 @@ import org.apache.activemq.artemis.core.config.BridgeConfiguration;
 import org.apache.activemq.artemis.core.config.Configuration;
 import org.apache.activemq.artemis.core.config.ConnectorServiceConfiguration;
 import org.apache.activemq.artemis.core.config.DivertConfiguration;
+import org.apache.activemq.artemis.core.config.TransformerConfiguration;
 import org.apache.activemq.artemis.core.filter.Filter;
 import org.apache.activemq.artemis.core.management.impl.view.AddressView;
 import org.apache.activemq.artemis.core.management.impl.view.ConnectionView;
@@ -2260,11 +2261,25 @@ public class ActiveMQServerControlImpl extends AbstractControl implements Active
                             final String filterString,
                             final String transformerClassName,
                             final String routingType) throws Exception {
+      createDivert(name, routingName, address, forwardingAddress, exclusive, filterString, transformerClassName, null, routingType);
+   }
+
+   @Override
+   public void createDivert(final String name,
+                            final String routingName,
+                            final String address,
+                            final String forwardingAddress,
+                            final boolean exclusive,
+                            final String filterString,
+                            final String transformerClassName,
+                            final Map<String, String> transformerProperties,
+                            final String routingType) throws Exception {
       checkStarted();
 
       clearIO();
       try {
-         DivertConfiguration config = new DivertConfiguration().setName(name).setRoutingName(routingName).setAddress(address).setForwardingAddress(forwardingAddress).setExclusive(exclusive).setFilterString(filterString).setTransformerClassName(transformerClassName).setRoutingType(DivertConfigurationRoutingType.valueOf(routingType));
+         TransformerConfiguration transformerConfiguration = transformerClassName == null ? null : new TransformerConfiguration().setClassName(transformerClassName).setProperties(transformerProperties);
+         DivertConfiguration config = new DivertConfiguration().setName(name).setRoutingName(routingName).setAddress(address).setForwardingAddress(forwardingAddress).setExclusive(exclusive).setFilterString(filterString).setTransformerConfiguration(transformerConfiguration).setRoutingType(DivertConfigurationRoutingType.valueOf(routingType));
          server.deployDivert(config);
       } finally {
          blockOnIO();
@@ -2321,12 +2336,54 @@ public class ActiveMQServerControlImpl extends AbstractControl implements Active
                             final boolean ha,
                             final String user,
                             final String password) throws Exception {
+      createBridge(name,
+                   queueName,
+                   forwardingAddress,
+                   filterString,
+                   transformerClassName,
+                   null,
+                   retryInterval,
+                   retryIntervalMultiplier,
+                   initialConnectAttempts,
+                   reconnectAttempts,
+                   useDuplicateDetection,
+                   confirmationWindowSize,
+                   producerWindowSize,
+                   clientFailureCheckPeriod,
+                   staticConnectorsOrDiscoveryGroup,
+                   useDiscoveryGroup,
+                   ha,
+                   user,
+                   password);
+   }
+
+   @Override
+   public void createBridge(final String name,
+                            final String queueName,
+                            final String forwardingAddress,
+                            final String filterString,
+                            final String transformerClassName,
+                            final Map<String, String> transformerProperties,
+                            final long retryInterval,
+                            final double retryIntervalMultiplier,
+                            final int initialConnectAttempts,
+                            final int reconnectAttempts,
+                            final boolean useDuplicateDetection,
+                            final int confirmationWindowSize,
+                            final int producerWindowSize,
+                            final long clientFailureCheckPeriod,
+                            final String staticConnectorsOrDiscoveryGroup,
+                            boolean useDiscoveryGroup,
+                            final boolean ha,
+                            final String user,
+                            final String password) throws Exception {
       checkStarted();
 
       clearIO();
 
       try {
-         BridgeConfiguration config = new BridgeConfiguration().setName(name).setQueueName(queueName).setForwardingAddress(forwardingAddress).setFilterString(filterString).setTransformerClassName(transformerClassName).setClientFailureCheckPeriod(clientFailureCheckPeriod).setRetryInterval(retryInterval).setRetryIntervalMultiplier(retryIntervalMultiplier).setInitialConnectAttempts(initialConnectAttempts).setReconnectAttempts(reconnectAttempts).setUseDuplicateDetection(useDuplicateDetection).setConfirmationWindowSize(confirmationWindowSize).setProducerWindowSize(producerWindowSize).setHA(ha).setUser(user).setPassword(password);
+         TransformerConfiguration transformerConfiguration = transformerClassName == null ? null : new TransformerConfiguration().setClassName(transformerClassName).setProperties(transformerProperties);
+         BridgeConfiguration config = new BridgeConfiguration().setName(name).setQueueName(queueName).setForwardingAddress(forwardingAddress).setFilterString(filterString).setTransformerConfiguration(transformerConfiguration).setClientFailureCheckPeriod(clientFailureCheckPeriod).setRetryInterval(retryInterval).setRetryIntervalMultiplier(retryIntervalMultiplier).setInitialConnectAttempts(initialConnectAttempts).setReconnectAttempts(reconnectAttempts).setUseDuplicateDetection(useDuplicateDetection).setConfirmationWindowSize(confirmationWindowSize).setProducerWindowSize(producerWindowSize).setHA(ha).setUser(user).setPassword(password);
 
          if (useDiscoveryGroup) {
             config.setDiscoveryGroupName(staticConnectorsOrDiscoveryGroup);
@@ -2363,7 +2420,8 @@ public class ActiveMQServerControlImpl extends AbstractControl implements Active
       clearIO();
 
       try {
-         BridgeConfiguration config = new BridgeConfiguration().setName(name).setQueueName(queueName).setForwardingAddress(forwardingAddress).setFilterString(filterString).setTransformerClassName(transformerClassName).setClientFailureCheckPeriod(clientFailureCheckPeriod).setRetryInterval(retryInterval).setRetryIntervalMultiplier(retryIntervalMultiplier).setInitialConnectAttempts(initialConnectAttempts).setReconnectAttempts(reconnectAttempts).setUseDuplicateDetection(useDuplicateDetection).setConfirmationWindowSize(confirmationWindowSize).setHA(ha).setUser(user).setPassword(password);
+         TransformerConfiguration transformerConfiguration = transformerClassName == null ? null : new TransformerConfiguration().setClassName(transformerClassName);
+         BridgeConfiguration config = new BridgeConfiguration().setName(name).setQueueName(queueName).setForwardingAddress(forwardingAddress).setFilterString(filterString).setTransformerConfiguration(transformerConfiguration).setClientFailureCheckPeriod(clientFailureCheckPeriod).setRetryInterval(retryInterval).setRetryIntervalMultiplier(retryIntervalMultiplier).setInitialConnectAttempts(initialConnectAttempts).setReconnectAttempts(reconnectAttempts).setUseDuplicateDetection(useDuplicateDetection).setConfirmationWindowSize(confirmationWindowSize).setHA(ha).setUser(user).setPassword(password);
 
          if (useDiscoveryGroup) {
             config.setDiscoveryGroupName(staticConnectorsOrDiscoveryGroup);

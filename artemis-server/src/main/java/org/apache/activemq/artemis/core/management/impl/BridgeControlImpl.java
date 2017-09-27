@@ -19,6 +19,7 @@ package org.apache.activemq.artemis.core.management.impl;
 import javax.management.MBeanAttributeInfo;
 import javax.management.MBeanOperationInfo;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.activemq.artemis.api.core.management.BridgeControl;
 import org.apache.activemq.artemis.core.config.BridgeConfiguration;
@@ -144,7 +145,17 @@ public class BridgeControlImpl extends AbstractControl implements BridgeControl 
    public String getTransformerClassName() {
       clearIO();
       try {
-         return configuration.getTransformerClassName();
+         return configuration.getTransformerConfiguration() == null ? null : configuration.getTransformerConfiguration().getClassName();
+      } finally {
+         blockOnIO();
+      }
+   }
+
+   @Override
+   public Map<String, String> getTransformerProperties() {
+      clearIO();
+      try {
+         return configuration.getTransformerConfiguration() == null ? null : configuration.getTransformerConfiguration().getProperties();
       } finally {
          blockOnIO();
       }
