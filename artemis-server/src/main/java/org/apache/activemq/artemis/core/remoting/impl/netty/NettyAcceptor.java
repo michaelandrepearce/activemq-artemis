@@ -482,9 +482,9 @@ public class NettyAcceptor extends AbstractAcceptor {
       if (needClientAuth)
          engine.setNeedClientAuth(true);
 
-      // setting the enabled cipher suites resets the enabled protocols so we need
-      // to save the enabled protocols so that after the customer cipher suite is enabled
-      // we can reset the enabled protocols if a customer protocol isn't specified
+      // setting the enabled cipher suites resets the enabled protocol so we need
+      // to save the enabled protocol so that after the customer cipher suite is enabled
+      // we can reset the enabled protocol if a customer protocol isn't specified
       String[] originalProtocols = engine.getEnabledProtocols();
 
       if (enabledCipherSuites != null) {
@@ -507,7 +507,7 @@ public class NettyAcceptor extends AbstractAcceptor {
          engine.setEnabledProtocols(originalProtocols);
       }
 
-      // Strip "SSLv3" from the current enabled protocols to address the POODLE exploit.
+      // Strip "SSLv3" from the current enabled protocol to address the POODLE exploit.
       // This recommendation came from http://www.oracle.com/technetwork/java/javase/documentation/cve-2014-3566-2342133.html
       String[] protocols = engine.getEnabledProtocols();
       Set<String> set = new HashSet<>();

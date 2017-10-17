@@ -768,7 +768,7 @@ public class ActiveMQSessionContext extends SessionContext {
    }
 
    /**
-    * This doesn't apply to other protocols probably, so it will be an ActiveMQ Artemis exclusive feature
+    * This doesn't apply to other protocol probably, so it will be an ActiveMQ Artemis exclusive feature
     *
     * @throws ActiveMQException
     */

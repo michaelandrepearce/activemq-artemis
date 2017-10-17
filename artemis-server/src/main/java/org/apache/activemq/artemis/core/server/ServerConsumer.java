@@ -79,7 +79,7 @@ public interface ServerConsumer extends Consumer {
    MessageReference removeReferenceByID(long messageID) throws Exception;
 
    /**
-    * Some protocols may choose to send the message back to delivering instead of redeliver.
+    * Some protocol may choose to send the message back to delivering instead of redeliver.
     * For example openwire will redeliver through the client, so messages will go back to delivering list after rollback.
     */
    void backToDelivering(MessageReference reference);

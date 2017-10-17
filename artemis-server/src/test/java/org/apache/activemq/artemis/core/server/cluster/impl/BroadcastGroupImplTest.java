@@ -87,7 +87,7 @@ public class BroadcastGroupImplTest extends ActiveMQTestBase {
    /**
     * Test the broadcasted packages length.<br>
     * Broadcast and MultiCast techniques are commonly limited in size by
-    * underlying hardware. Broadcast and MultiCast protocols are typically not
+    * underlying hardware. Broadcast and MultiCast protocol are typically not
     * guaranteed (UDP) and as such large packages may be silently discarded by
     * underlying hardware.<br>
     * This test validates that Artemis Server does not broadcast packages above

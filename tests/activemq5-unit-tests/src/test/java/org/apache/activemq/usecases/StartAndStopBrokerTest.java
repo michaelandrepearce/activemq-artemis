@@ -35,7 +35,7 @@ public class StartAndStopBrokerTest extends TestCase {
       // have persistence messages as a default
       System.setProperty("activemq.persistenceAdapter", "org.apache.activemq.store.vm.VMPersistenceAdapter");
 
-      // configuration of container and all protocols
+      // configuration of container and all protocol
       BrokerService broker = createBroker();
 
       // start a client

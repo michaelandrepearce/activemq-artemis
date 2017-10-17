@@ -754,7 +754,7 @@ public class RemotingServiceImpl implements RemotingService, ServerConnectionLif
    }
 
    /**
-    * Locates protocols from the internal default map and moves them into the input protocol map.
+    * Locates protocol from the internal default map and moves them into the input protocol map.
     *
     * @param protocolList
     * @param transportConfig
@@ -787,7 +787,7 @@ public class RemotingServiceImpl implements RemotingService, ServerConnectionLif
    }
 
    /**
-    * Loads the protocols found into a map.
+    * Loads the protocol found into a map.
     *
     * @param protocolManagerFactoryCollection
     */

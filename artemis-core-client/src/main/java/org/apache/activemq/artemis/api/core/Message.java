@@ -375,7 +375,7 @@ public interface Message {
 
    /** Used to send this message to an encoded medium buffer.
     * @param buffer the buffer used.
-    * @param deliveryCount Some protocols (AMQP) will have this as part of the message. */
+    * @param deliveryCount Some protocol (AMQP) will have this as part of the message. */
    void sendBuffer(ByteBuf buffer, int deliveryCount);
 
    int getPersistSize();

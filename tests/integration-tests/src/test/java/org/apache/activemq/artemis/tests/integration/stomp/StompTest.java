@@ -1445,7 +1445,7 @@ public class StompTest extends StompTestBase {
       final String PREFIXED_ADDRESS = prefix + ADDRESS;
       String param = routingType.toString();
       String urlParam = param.toLowerCase() + "Prefix";
-      server.getActiveMQServer().getRemotingService().createAcceptor("test", "tcp://" + hostname + ":" + port + "?protocols=" + StompProtocolManagerFactory.STOMP_PROTOCOL_NAME + "&" + urlParam + "=" + prefix).start();
+      server.getActiveMQServer().getRemotingService().createAcceptor("test", "tcp://" + hostname + ":" + port + "?protocol=" + StompProtocolManagerFactory.STOMP_PROTOCOL_NAME + "&" + urlParam + "=" + prefix).start();
       conn = StompClientConnectionFactory.createClientConnection("1.0", hostname, port);
       conn.connect(defUser, defPass);
 
@@ -1499,7 +1499,7 @@ public class StompTest extends StompTestBase {
       final String ADDRESS = UUID.randomUUID().toString();
       final String PREFIXED_ADDRESS = prefix + ADDRESS;
       String urlParam = routingType.toString().toLowerCase() + "Prefix";
-      server.getActiveMQServer().getRemotingService().createAcceptor("test", "tcp://" + hostname + ":" + port + "?protocols=" + StompProtocolManagerFactory.STOMP_PROTOCOL_NAME + "&" + urlParam + "=" + prefix).start();
+      server.getActiveMQServer().getRemotingService().createAcceptor("test", "tcp://" + hostname + ":" + port + "?protocol=" + StompProtocolManagerFactory.STOMP_PROTOCOL_NAME + "&" + urlParam + "=" + prefix).start();
       conn = StompClientConnectionFactory.createClientConnection("1.0", hostname, port);
       conn.connect(defUser, defPass);
       String uuid = UUID.randomUUID().toString();

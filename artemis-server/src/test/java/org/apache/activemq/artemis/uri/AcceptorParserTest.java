@@ -28,7 +28,7 @@ public class AcceptorParserTest {
 
    @Test
    public void testAcceptor() throws Exception {
-      List<TransportConfiguration> configs = ConfigurationUtils.parseAcceptorURI("test", "tcp://localhost:8080?tcpSendBufferSize=1048576&tcpReceiveBufferSize=1048576&protocols=openwire&banana=x");
+      List<TransportConfiguration> configs = ConfigurationUtils.parseAcceptorURI("test", "tcp://localhost:8080?tcpSendBufferSize=1048576&tcpReceiveBufferSize=1048576&protocol=openwire&banana=x");
 
       for (TransportConfiguration config : configs) {
          System.out.println("config:" + config);

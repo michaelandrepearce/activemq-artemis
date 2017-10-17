@@ -63,7 +63,7 @@ import org.jboss.logging.Logger;
 /**
  * This class will return specific packets for different types of actions happening on a messaging protocol.
  *
- * This is trying to unify the Core client into multiple protocols.
+ * This is trying to unify the Core client into multiple protocol.
  *
  * Returning null in certain packets means no action is taken on this specific protocol.
  *

@@ -487,7 +487,7 @@ public interface ActiveMQClientLogger extends BasicLogger {
    void invalidCipherSuite(String validSuites);
 
    @LogMessage(level = Logger.Level.ERROR)
-   @Message(id = 214022, value = "Invalid protocol specified. Supported protocols are: {0}", format = Message.Format.MESSAGE_FORMAT)
+   @Message(id = 214022, value = "Invalid protocol specified. Supported protocol are: {0}", format = Message.Format.MESSAGE_FORMAT)
    void invalidProtocol(String validProtocols);
 
    @LogMessage(level = Logger.Level.DEBUG)

@@ -515,7 +515,7 @@ public class ServerSessionImpl implements ServerSession, FailureListener {
    }
 
    /**
-    * Some protocols may chose to hold their transactions outside of the ServerSession.
+    * Some protocol may chose to hold their transactions outside of the ServerSession.
     * This can be used to replace the transaction.
     * Notice that we set autoCommitACK and autoCommitSends to true if tx == null
     */

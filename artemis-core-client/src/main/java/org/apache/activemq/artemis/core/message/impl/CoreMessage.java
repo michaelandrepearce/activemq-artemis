@@ -207,7 +207,7 @@ public class CoreMessage extends RefCountMessage implements ICoreMessage {
    /**
     *
     * @param sendBuffer
-    * @param deliveryCount Some protocols (AMQP) will have this as part of the message. ignored on core
+    * @param deliveryCount Some protocol (AMQP) will have this as part of the message. ignored on core
     */
    @Override
    public void sendBuffer(ByteBuf sendBuffer, int deliveryCount) {
@@ -472,7 +472,7 @@ public class CoreMessage extends RefCountMessage implements ICoreMessage {
       // as it will be used to send the body from the files.
       //
       // this may need further refactoring when we improve large messages
-      // and expose that functionality to other protocols.
+      // and expose that functionality to other protocol.
       return false;
    }
 

@@ -73,7 +73,7 @@ public class TransportConstants {
    @Deprecated
    public static final String PROTOCOL_PROP_NAME = "protocol";
 
-   public static final String PROTOCOLS_PROP_NAME = "protocols";
+   public static final String PROTOCOLS_PROP_NAME = "protocol";
 
    public static final String HOST_PROP_NAME = "host";
 

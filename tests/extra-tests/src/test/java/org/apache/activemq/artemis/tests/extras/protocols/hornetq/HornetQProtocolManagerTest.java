@@ -62,8 +62,8 @@ public class HornetQProtocolManagerTest extends ActiveMQTestBase {
       Configuration configuration = createDefaultConfig(false);
       configuration.setPersistenceEnabled(false);
       configuration.getAcceptorConfigurations().clear();
-      configuration.addAcceptorConfiguration("legacy", "tcp://localhost:61616?protocols=HORNETQ").
-         addAcceptorConfiguration("corepr", "tcp://localhost:61617?protocols=CORE");
+      configuration.addAcceptorConfiguration("legacy", "tcp://localhost:61616?protocol=HORNETQ").
+         addAcceptorConfiguration("corepr", "tcp://localhost:61617?protocol=CORE");
 
       configuration.addConnectorConfiguration("legacy", "tcp://localhost:61616");
       JMSConfiguration jmsConfiguration = new JMSConfigurationImpl();

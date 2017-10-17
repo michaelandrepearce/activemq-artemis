@@ -170,7 +170,7 @@ public interface ActiveMQServerLogger extends BasicLogger {
    void journalUnreferencedMessage(Long messageID);
 
    @LogMessage(level = Logger.Level.INFO)
-   @Message(id = 221020, value = "Started {0} Acceptor at {1}:{2,number,#} for protocols [{3}]", format = Message.Format.MESSAGE_FORMAT)
+   @Message(id = 221020, value = "Started {0} Acceptor at {1}:{2,number,#} for protocol [{3}]", format = Message.Format.MESSAGE_FORMAT)
    void startedAcceptor(String acceptorType, String host, Integer port, String enabledProtocols);
 
    @LogMessage(level = Logger.Level.INFO)
@@ -1128,7 +1128,7 @@ public interface ActiveMQServerLogger extends BasicLogger {
 
    @SuppressWarnings("deprecation")
    @LogMessage(level = Logger.Level.WARN)
-   @Message(id = 222168, value = "The ''" + TransportConstants.PROTOCOL_PROP_NAME + "'' property is deprecated. If you want this Acceptor to support multiple protocols, use the ''" + TransportConstants.PROTOCOLS_PROP_NAME + "'' property, e.g. with value ''CORE,AMQP,STOMP''",
+   @Message(id = 222168, value = "The ''" + TransportConstants.PROTOCOL_PROP_NAME + "'' property is deprecated. If you want this Acceptor to support multiple protocol, use the ''" + TransportConstants.PROTOCOLS_PROP_NAME + "'' property, e.g. with value ''CORE,AMQP,STOMP''",
       format = Message.Format.MESSAGE_FORMAT)
    void warnDeprecatedProtocol();
 
@@ -1806,7 +1806,7 @@ public interface ActiveMQServerLogger extends BasicLogger {
    void invalidCipherSuite(String validSuites);
 
    @LogMessage(level = Logger.Level.ERROR)
-   @Message(id = 224060, value = "Invalid protocol specified. Supported protocols are: {0}", format = Message.Format.MESSAGE_FORMAT)
+   @Message(id = 224060, value = "Invalid protocol specified. Supported protocol are: {0}", format = Message.Format.MESSAGE_FORMAT)
    void invalidProtocol(String validProtocols);
 
    @LogMessage(level = Logger.Level.ERROR)

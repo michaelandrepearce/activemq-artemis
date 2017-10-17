@@ -284,7 +284,7 @@ public final class FileConfigurationParser extends XMLConfigurationUtil {
          parseStoreConfiguration((Element) storeTypeNodes.item(0), config);
       }
 
-      config.setResolveProtocols(getBoolean(e, "resolve-protocols", config.isResolveProtocols()));
+      config.setResolveProtocols(getBoolean(e, "resolve-protocol", config.isResolveProtocols()));
 
       config.setPersistenceEnabled(getBoolean(e, "persistence-enabled", config.isPersistenceEnabled()));
 

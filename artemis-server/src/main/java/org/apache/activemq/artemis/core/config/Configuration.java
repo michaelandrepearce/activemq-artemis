@@ -1008,8 +1008,8 @@ public interface Configuration {
    boolean isMaskPassword();
 
    /*
-   * Whether or not that ActiveMQ Artemis should use all protocols available on the classpath. If false only the core protocol will
-   * be set, any other protocols will need to be set directly on the ActiveMQServer
+   * Whether or not that ActiveMQ Artemis should use all protocol available on the classpath. If false only the core protocol will
+   * be set, any other protocol will need to be set directly on the ActiveMQServer
    * */
    Configuration setResolveProtocols(boolean resolveProtocols);
 

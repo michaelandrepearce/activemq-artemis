@@ -560,9 +560,9 @@ public class NettyConnector extends AbstractConnector {
 
                engine.setWantClientAuth(true);
 
-               // setting the enabled cipher suites resets the enabled protocols so we need
-               // to save the enabled protocols so that after the customer cipher suite is enabled
-               // we can reset the enabled protocols if a customer protocol isn't specified
+               // setting the enabled cipher suites resets the enabled protocol so we need
+               // to save the enabled protocol so that after the customer cipher suite is enabled
+               // we can reset the enabled protocol if a customer protocol isn't specified
                String[] originalProtocols = engine.getEnabledProtocols();
 
                if (enabledCipherSuites != null) {

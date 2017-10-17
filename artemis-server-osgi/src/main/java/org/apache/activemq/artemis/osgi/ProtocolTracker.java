@@ -30,9 +30,9 @@ import org.osgi.framework.ServiceReference;
 import org.osgi.util.tracker.ServiceTrackerCustomizer;
 
 /**
- * Tracks the available ProtocolManagerFactory services as well as the required protocols.
+ * Tracks the available ProtocolManagerFactory services as well as the required protocol.
  * When a new service appears the factory is added to the server.
- * When all needed protocols are present the server is started.
+ * When all needed protocol are present the server is started.
  * When required a service disappears the server is stopped.
  */
 @SuppressWarnings("rawtypes")
@@ -59,7 +59,7 @@ public class ProtocolTracker implements ServiceTrackerCustomizer<ProtocolManager
       //CORE is always registered as a protocol in RemoteServiceImpl
       this.protocols.put(ActiveMQClient.DEFAULT_CORE_PROTOCOL, true);
 
-      //if no protocols are specified we need to start artemis
+      //if no protocol are specified we need to start artemis
       List<String> missing = getMissing();
       if (missing.isEmpty()) {
          try {

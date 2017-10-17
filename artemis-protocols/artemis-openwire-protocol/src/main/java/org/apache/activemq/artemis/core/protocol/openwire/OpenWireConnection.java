@@ -605,7 +605,7 @@ public class OpenWireConnection extends AbstractRemotingConnection implements Se
    public void fail(ActiveMQException me, String message) {
 
       if (me != null) {
-         //filter it like the other protocols
+         //filter it like the other protocol
          if (!(me instanceof ActiveMQRemoteDisconnectException)) {
             ActiveMQClientLogger.LOGGER.connectionFailureDetected(me.getMessage(), me.getType());
          }

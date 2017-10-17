@@ -173,10 +173,10 @@ public class NettyTransportSslOptions extends NettyTransportOptions {
    }
 
    /**
-    * The protocols to be set as enabled.
+    * The protocol to be set as enabled.
     *
     * @param enabledProtocols
-    *        the enabled protocols to set, or null if the defaults should be used.
+    *        the enabled protocol to set, or null if the defaults should be used.
     */
    public void setEnabledProtocols(String[] enabledProtocols) {
       this.enabledProtocols = enabledProtocols;
@@ -184,17 +184,17 @@ public class NettyTransportSslOptions extends NettyTransportOptions {
 
    /**
     *
-    * @return the protocols to disable or null if none should be
+    * @return the protocol to disable or null if none should be
     */
    public String[] getDisabledProtocols() {
       return disabledProtocols;
    }
 
    /**
-    * The protocols to be disable.
+    * The protocol to be disable.
     *
     * @param disabledProtocols
-    *        the protocols to disable, or null if none should be.
+    *        the protocol to disable, or null if none should be.
     */
    public void setDisabledProtocols(String[] disabledProtocols) {
       this.disabledProtocols = disabledProtocols;

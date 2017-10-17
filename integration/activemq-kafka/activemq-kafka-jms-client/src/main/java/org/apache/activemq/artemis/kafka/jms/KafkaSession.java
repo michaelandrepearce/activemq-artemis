@@ -1,0 +1,331 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.activemq.artemis.kafka.jms;
+
+import javax.jms.BytesMessage;
+import javax.jms.IllegalStateException;
+import javax.jms.JMSException;
+import javax.jms.MapMessage;
+import javax.jms.Message;
+import javax.jms.MessageConsumer;
+import javax.jms.MessageListener;
+import javax.jms.MessageProducer;
+import javax.jms.ObjectMessage;
+import javax.jms.QueueBrowser;
+import javax.jms.StreamMessage;
+import javax.jms.TemporaryQueue;
+import javax.jms.TemporaryTopic;
+import javax.jms.TextMessage;
+import javax.jms.TopicSubscriber;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+
+import org.apache.activemq.artemis.kafka.jms.common.ConnectionAwareSession;
+import org.apache.activemq.artemis.kafka.jms.consumer.ConsumerFactory;
+import org.apache.activemq.artemis.kafka.jms.consumer.MessageConsumerFactory;
+import org.apache.activemq.artemis.kafka.jms.consumer.MessageConsumerFactoryImpl;
+import org.apache.activemq.artemis.kafka.jms.message.KafkaJmsMessageFactory;
+import org.apache.activemq.artemis.kafka.jms.producer.MessageProducerFactory;
+import org.apache.activemq.artemis.kafka.jms.producer.MessageProducerFactoryImpl;
+import org.apache.activemq.artemis.kafka.jms.producer.ProducerFactory;
+import org.apache.activemq.artemis.kafka.jms.util.Preconditions;
+import org.apache.activemq.artemis.kafka.jms.util.Unsupported;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class KafkaSession implements ConnectionAwareSession {
+   static final Logger log = LoggerFactory.getLogger(KafkaSession.class);
+   private final boolean transacted;
+   private final int acknowledgeMode;
+   private final KafkaConnection connection;
+   private final KafkaJmsMessageFactory messageFactory;
+   private MessageConsumerFactory consumerFactory;
+   private MessageProducerFactory producerFactory;
+   private List<KafkaMessageConsumer> consumers = new ArrayList<>();
+   private List<KafkaMessageProducer> producers = new ArrayList<>();
+   private volatile boolean closed = false;
+
+   public KafkaSession(KafkaConnection connection, boolean transacted, int acknowledgeMode, ProducerFactory producerFactory,
+                       ConsumerFactory consumerFactory, KafkaJmsMessageFactory messageFactory) throws JMSException {
+      Preconditions.checkTransacted(transacted);
+      Preconditions.checkAcknowledgeMode(acknowledgeMode);
+
+      this.transacted = transacted;
+      this.acknowledgeMode = acknowledgeMode;
+
+      this.connection = connection;
+      this.consumerFactory = new MessageConsumerFactoryImpl(consumerFactory, this);
+      this.producerFactory = new MessageProducerFactoryImpl(producerFactory, this);
+      this.messageFactory = messageFactory;
+   }
+
+   @Override
+   public BytesMessage createBytesMessage() throws JMSException {
+      return messageFactory.createBytesMessage();
+   }
+
+   @Override
+   public MapMessage createMapMessage() throws JMSException {
+      return messageFactory.createMapMessage();
+   }
+
+   @Override
+   public Message createMessage() throws JMSException {
+      return messageFactory.createMessage();
+   }
+
+   @Override
+   public ObjectMessage createObjectMessage() throws JMSException {
+      return messageFactory.createObjectMessage();
+   }
+
+   @Override
+   public ObjectMessage createObjectMessage(Serializable serializable) throws JMSException {
+      return messageFactory.createObjectMessage(serializable);
+   }
+
+   @Override
+   public StreamMessage createStreamMessage() throws JMSException {
+      return messageFactory.createStreamMessage();
+   }
+
+   @Override
+   public TextMessage createTextMessage() throws JMSException {
+      return messageFactory.createTextMessage();
+   }
+
+   @Override
+   public TextMessage createTextMessage(String payload) throws JMSException {
+      return messageFactory.createTextMessage(payload);
+   }
+
+   @Override
+   public boolean getTransacted() throws JMSException {
+      return transacted;
+   }
+
+   @Override
+   public int getAcknowledgeMode() throws JMSException {
+      return acknowledgeMode;
+   }
+
+   @Override
+   public void commit() throws JMSException {
+      if (!getTransacted()) {
+         throw new IllegalStateException("session is not transacted");
+      }
+   }
+
+   @Override
+   public void rollback() throws JMSException {
+      if (!getTransacted()) {
+         throw new IllegalStateException("session is not transacted");
+      }
+   }
+
+   @Override
+   public void close() throws JMSException {
+      closed = true;
+      log.debug("closing {} consumer(s) for {}", consumers.size(), this);
+      for (MessageConsumer consumer : consumers) {
+         consumer.close();
+      }
+      log.debug("closing {} producer(s) for {}", producers.size(), this);
+      for (MessageProducer producer : producers) {
+         producer.close();
+      }
+
+      connection.removeSession(this);
+   }
+
+   @Override
+   public void recover() throws JMSException {
+      if (!getTransacted()) {
+         throw new IllegalStateException("session is not transacted");
+      }
+   }
+
+   @Override
+   @Unsupported("session.messageListener is not supported")
+   public MessageListener getMessageListener() throws JMSException {
+      return null;
+   }
+
+   @Override
+   @Unsupported("session.messageListener is not supported")
+   public void setMessageListener(MessageListener messageListener) throws JMSException {
+   }
+
+   @Override
+   public void run() {
+      consumers.forEach(KafkaMessageConsumer::run);
+   }
+
+   @Override
+   public MessageProducer createProducer(javax.jms.Destination destination) throws JMSException {
+      KafkaMessageProducer messageProducer = new KafkaMessageProducer(this, destination);
+      this.producers.add(messageProducer);
+      return messageProducer;
+   }
+
+   @Override
+   public MessageConsumer createConsumer(javax.jms.Destination destination) throws JMSException {
+      return this.createConsumer(destination, (String) null, false);
+   }
+
+   @Override
+   @Unsupported("messageSelector is not supported")
+   public MessageConsumer createConsumer(javax.jms.Destination destination, String messageSelector) throws JMSException {
+      return this.createConsumer(destination, messageSelector, false);
+   }
+
+   @Override
+   @Unsupported("messageSelector is not supported")
+   public MessageConsumer createConsumer(javax.jms.Destination destination, String messageSelector, boolean noLocal) throws JMSException {
+      KafkaMessageConsumer messageConsumer = new KafkaMessageConsumer(this, destination, messageSelector, null, false);
+      this.consumers.add(messageConsumer);
+      return messageConsumer;
+   }
+
+   @Override
+   public javax.jms.Queue createQueue(String queueName) throws JMSException {
+      return new Queue(queueName);
+   }
+
+   @Override
+   public javax.jms.Topic createTopic(String topicName) throws JMSException {
+      return new Topic(topicName);
+   }
+
+   @Override
+   public TopicSubscriber createDurableSubscriber(javax.jms.Topic topic, String subscriptionName) throws JMSException {
+      return createDurableSubscriber(topic, subscriptionName, null, false);
+   }
+
+   @Override
+   public TopicSubscriber createDurableSubscriber(javax.jms.Topic topic, String subscriptionName, String messageSelector, boolean noLocal)
+      throws JMSException {
+      KafkaTopicSubscriber topicSubscriber = new KafkaTopicSubscriber(this, topic, messageSelector, subscriptionName, false);
+      this.consumers.add(topicSubscriber);
+      return topicSubscriber;
+   }
+
+   @Override
+   public QueueBrowser createBrowser(javax.jms.Queue queue) throws JMSException {
+      return this.createBrowser(queue, (String) null);
+   }
+
+   @Override
+   @Unsupported("messageSelector is not supported")
+   public QueueBrowser createBrowser(javax.jms.Queue queue, String messageSelector) throws JMSException {
+      KafkaQueueBrowser queueBrowser = new KafkaQueueBrowser(this, queue, messageSelector);
+      return queueBrowser;
+
+   }
+
+   long pollTimeoutMs() {
+      return Long.parseLong(connection.getConfig().getProperty("poll.timeout.ms", "30000"));
+   }
+
+   @Override
+   @Unsupported("createTemporaryQueue is not supported")
+   public TemporaryQueue createTemporaryQueue() throws JMSException {
+      throw new UnsupportedOperationException();
+   }
+
+   @Override
+   @Unsupported("createTemporaryTopic is not supported")
+   public TemporaryTopic createTemporaryTopic() throws JMSException {
+      throw new UnsupportedOperationException();
+   }
+
+   @Override
+   @Unsupported("unsubscribe is not supported")
+   public void unsubscribe(String s) throws JMSException {
+      throw new UnsupportedOperationException();
+   }
+
+   @Override
+   public MessageConsumer createSharedConsumer(javax.jms.Topic topic, String subscriptionName) throws JMSException {
+      return createSharedDurableConsumer(topic, subscriptionName);
+   }
+
+   @Override
+   @Unsupported("messageSelector is not supported")
+   public MessageConsumer createSharedConsumer(javax.jms.Topic topic, String subscriptionName, String messageSelector) throws JMSException {
+      return createSharedDurableConsumer(topic, subscriptionName, messageSelector);
+   }
+
+   @Override
+   public MessageConsumer createDurableConsumer(javax.jms.Topic topic, String subscriptionName) throws JMSException {
+      return createDurableConsumer(topic, subscriptionName, null, false);
+   }
+
+   @Override
+   @Unsupported("messageSelector is not supported")
+   public MessageConsumer createDurableConsumer(javax.jms.Topic topic, String subscriptionName, String messageSelector, boolean noLocal)
+      throws JMSException {
+      return createDurableSubscriber(topic, subscriptionName, messageSelector, noLocal);
+   }
+
+   @Override
+   public MessageConsumer createSharedDurableConsumer(javax.jms.Topic topic, String subscriptionName) throws JMSException {
+      return createSharedDurableConsumer(topic, subscriptionName, null);
+   }
+
+   @Override
+   @Unsupported("messageSelector is not supported")
+   public MessageConsumer createSharedDurableConsumer(javax.jms.Topic topic, String subscriptionName, String messageSelector)
+      throws JMSException {
+      KafkaMessageConsumer messageConsumer = new KafkaMessageConsumer(this, topic, messageSelector, subscriptionName, true);
+      this.consumers.add(messageConsumer);
+      return messageConsumer;
+   }
+
+   @Override
+   public boolean isClosed() {
+      return closed;
+   }
+
+   @Override
+   public boolean isStarted() {
+      return connection.isStarted();
+   }
+
+   @Override
+   public Properties getConfig() {
+      return connection.getConfig();
+   }
+
+   MessageConsumerFactory getConsumerFactory() {
+      return consumerFactory;
+   }
+
+   MessageProducerFactory getProducerFactory() {
+      return producerFactory;
+   }
+
+   KafkaJmsMessageFactory getMessageFactory() {
+      return messageFactory;
+   }
+
+   public static String toJMSMessageID(String topic, int partition, long offset) {
+      return String.format("ID:topic=%s:partition=%d:offset=%d", new Object[]{topic, Integer.valueOf(partition), Long.valueOf(offset)});
+   }
+}

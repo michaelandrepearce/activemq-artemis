@@ -124,7 +124,7 @@ class MQTTProtocolManager extends AbstractProtocolManager<MqttMessage, MQTTInter
 
    /**
     * The protocol handler passes us an 8 byte long array from the transport.  We sniff these first 8 bytes to see
-    * if they match the first 8 bytes from MQTT Connect packet.  In many other protocols the protocol name is the first
+    * if they match the first 8 bytes from MQTT Connect packet.  In many other protocol the protocol name is the first
     * thing sent on the wire.  However, in MQTT the protocol name doesn't come until later on in the CONNECT packet.
     *
     * In order to fully identify MQTT protocol via protocol name, we need up to 12 bytes.  However, we can use other

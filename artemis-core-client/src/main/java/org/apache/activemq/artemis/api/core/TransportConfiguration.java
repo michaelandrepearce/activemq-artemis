@@ -110,7 +110,7 @@ public class TransportConfiguration implements Serializable {
     * @param className  The class name of the ConnectorFactory
     * @param params     The parameters needed by the ConnectorFactory
     * @param name       The name of this TransportConfiguration
-    * @param extraProps The extra properties that specific to protocols
+    * @param extraProps The extra properties that specific to protocol
     */
    public TransportConfiguration(final String className,
                                  final Map<String, Object> params,

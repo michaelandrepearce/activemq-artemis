@@ -31,6 +31,11 @@ public interface ConnectorServiceFactory {
                                            PostOffice postOffice,
                                            ScheduledExecutorService scheduledThreadPool);
 
+
+   default boolean allowExtraProperties() {
+      return false;
+   }
+
    Set<String> getAllowableProperties();
 
    Set<String> getRequiredProperties();

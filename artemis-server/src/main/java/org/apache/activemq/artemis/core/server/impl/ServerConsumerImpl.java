@@ -645,7 +645,7 @@ public class ServerConsumerImpl implements ServerConsumer, ReadyListener {
 
    protected void updateDeliveryCountForCanceledRef(MessageReference ref, boolean failed) {
       // We first update the deliveryCount at the protocol callback...
-      // if that wasn't updated (if there is no specific logic, then we apply the default logic used on most protocols
+      // if that wasn't updated (if there is no specific logic, then we apply the default logic used on most protocol
       if (!callback.updateDeliveryCountAfterCancel(this, ref, failed)) {
          if (!failed) {
             // We don't decrement delivery count if the client failed, since there's a possibility that refs
@@ -779,7 +779,7 @@ public class ServerConsumerImpl implements ServerConsumer, ReadyListener {
     * there will be an interval defined between protocolDataStart and protocolDataEnd.
     * This method will fetch the delivering references, remove them from the delivering list and return a list.
     *
-    * This will be useful for other protocols that will need this such as openWire or MQTT.
+    * This will be useful for other protocol that will need this such as openWire or MQTT.
     */
    @Override
    public synchronized List<MessageReference> getDeliveringReferencesBasedOnProtocol(boolean remove,

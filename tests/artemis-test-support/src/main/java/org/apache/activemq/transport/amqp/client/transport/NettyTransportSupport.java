@@ -159,22 +159,22 @@ public class NettyTransportSupport {
 
       if (options.getEnabledProtocols() != null) {
          List<String> configuredProtocols = Arrays.asList(options.getEnabledProtocols());
-         LOG.trace("Configured protocols from transport options: {}", configuredProtocols);
+         LOG.trace("Configured protocol from transport options: {}", configuredProtocols);
          enabledProtocols.addAll(configuredProtocols);
       } else {
          List<String> engineProtocols = Arrays.asList(engine.getEnabledProtocols());
-         LOG.trace("Default protocols from the SSLEngine: {}", engineProtocols);
+         LOG.trace("Default protocol from the SSLEngine: {}", engineProtocols);
          enabledProtocols.addAll(engineProtocols);
       }
 
       String[] disabledProtocols = options.getDisabledProtocols();
       if (disabledProtocols != null) {
          List<String> disabled = Arrays.asList(disabledProtocols);
-         LOG.trace("Disabled protocols: {}", disabled);
+         LOG.trace("Disabled protocol: {}", disabled);
          enabledProtocols.removeAll(disabled);
       }
 
-      LOG.trace("Enabled protocols: {}", enabledProtocols);
+      LOG.trace("Enabled protocol: {}", enabledProtocols);
 
       return enabledProtocols.toArray(new String[0]);
    }

@@ -46,7 +46,7 @@ public interface ActiveMQOsgiLogger extends BasicLogger {
    ActiveMQOsgiLogger LOGGER = Logger.getMessageLogger(ActiveMQOsgiLogger.class, ActiveMQOsgiLogger.class.getPackage().getName());
 
    @LogMessage(level = Logger.Level.INFO)
-   @Message(id = 581000, value = "Broker config {0} found. Tracking protocols {1}", format = Message.Format.MESSAGE_FORMAT)
+   @Message(id = 581000, value = "Broker config {0} found. Tracking protocol {1}", format = Message.Format.MESSAGE_FORMAT)
    void brokerConfigFound(String name, String protocols);
 
    @LogMessage(level = Logger.Level.INFO)

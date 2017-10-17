@@ -71,7 +71,7 @@ public class ActiveMQProtonRemotingConnection extends AbstractRemotingConnection
 
       destroyed = true;
 
-      //filter it like the other protocols
+      //filter it like the other protocol
       if (!(me instanceof ActiveMQRemoteDisconnectException)) {
          ActiveMQClientLogger.LOGGER.connectionFailureDetected(me.getMessage(), me.getType());
       }

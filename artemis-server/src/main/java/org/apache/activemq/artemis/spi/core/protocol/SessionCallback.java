@@ -86,7 +86,7 @@ public interface SessionCallback {
    boolean isWritable(ReadyListener callback, Object protocolContext);
 
    /**
-    * Some protocols (Openwire) needs a special message with the browser is finished.
+    * Some protocol (Openwire) needs a special message with the browser is finished.
     */
    void browserFinished(ServerConsumer consumer);
 

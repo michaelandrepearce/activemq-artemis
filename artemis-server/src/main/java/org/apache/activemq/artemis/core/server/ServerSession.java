@@ -43,7 +43,7 @@ public interface ServerSession extends SecurityAuth {
    Object getConnectionID();
 
    /**
-    * Certain protocols may create an internal session that shouldn't go through security checks.
+    * Certain protocol may create an internal session that shouldn't go through security checks.
     * make sure you don't expose this property through any protocol layer as that would be a security breach
     */
    void enableSecurity();

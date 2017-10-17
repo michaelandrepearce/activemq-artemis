@@ -53,9 +53,9 @@ public interface ProtocolManager<P extends BaseInterceptor> {
    boolean isProtocol(byte[] array);
 
    /**
-    * If this protocols accepts connectoins without an initial handshake.
+    * If this protocol accepts connectoins without an initial handshake.
     * If true this protocol will be the failback case no other connections are made.
-    * New designed protocols should always require a handshake. This is only useful for legacy protocols.
+    * New designed protocol should always require a handshake. This is only useful for legacy protocol.
     */
    boolean acceptsNoHandshake();
 

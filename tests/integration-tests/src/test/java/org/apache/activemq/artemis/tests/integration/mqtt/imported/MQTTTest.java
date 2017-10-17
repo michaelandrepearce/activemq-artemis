@@ -1917,10 +1917,10 @@ public class MQTTTest extends MQTTTestSupport {
       final int port2 = 1885;
 
       final Configuration cfg1 = createDefaultConfig(1, false);
-      cfg1.addAcceptorConfiguration("mqtt1", "tcp://localhost:" + port1 + "?protocols=MQTT");
+      cfg1.addAcceptorConfiguration("mqtt1", "tcp://localhost:" + port1 + "?protocol=MQTT");
 
       final Configuration cfg2 = createDefaultConfig(2, false);
-      cfg2.addAcceptorConfiguration("mqtt2", "tcp://localhost:" + port2 + "?protocols=MQTT");
+      cfg2.addAcceptorConfiguration("mqtt2", "tcp://localhost:" + port2 + "?protocol=MQTT");
 
       final ActiveMQServer server1 = createServer(cfg1);
       server1.start();
