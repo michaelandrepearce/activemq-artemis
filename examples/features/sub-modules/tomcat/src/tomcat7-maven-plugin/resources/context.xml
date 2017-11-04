@@ -1,0 +1,15 @@
+<Context>
+    <Resource name="jms/connectionFactory"
+              auth="Container"
+              type="org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory"
+              description="JMS Connection Factory"
+              factory="org.apache.activemq.artemis.jndi.JNDIReferenceFactory"
+              brokerURL="(tcp://localhost:61616)?ha=true&amp;useKQueue=false&amp;useEpoll=false"/>
+    
+    <Resource name="jms/InputQueue"
+              auth="Container"
+              type="org.apache.activemq.artemis.jms.client.ActiveMQQueue"
+              factory="org.apache.activemq.artemis.jndi.JNDIReferenceFactory"
+              address="InputQueue"/>
+
+</Context>
