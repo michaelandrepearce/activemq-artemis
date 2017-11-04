@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.activemq.artemis.jms.referenceable;
+package org.apache.activemq.artemis.ra.referenceable;
 
 import javax.naming.Context;
 import javax.naming.Name;
@@ -23,11 +23,11 @@ import javax.naming.spi.ObjectFactory;
 import java.util.Hashtable;
 
 /**
- * A DestinationObjectFactory.
+ * A ConnectionFactoryObjectFactory.
  *
- * Given a Reference - reconstructs an ActiveMQDestination
+ * Given a reference - reconstructs an ActiveMQRAConnectionFactory
  */
-public class DestinationObjectFactory implements ObjectFactory {
+public class ActiveMQRAConnectionFactoryObjectFactory implements ObjectFactory {
 
    @Override
    public Object getObjectInstance(final Object ref,
@@ -36,7 +36,7 @@ public class DestinationObjectFactory implements ObjectFactory {
                                    final Hashtable<?, ?> props) throws Exception {
       Reference r = (Reference) ref;
 
-      byte[] bytes = (byte[]) r.get("ActiveMQ-DEST").getContent();
+      byte[] bytes = (byte[]) r.get("ActiveMQ-CF").getContent();
 
       // Deserialize
       return SerializableObjectRefAddr.deserialize(bytes);
