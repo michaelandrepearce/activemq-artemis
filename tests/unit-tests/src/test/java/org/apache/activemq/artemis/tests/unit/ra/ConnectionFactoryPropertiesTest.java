@@ -43,6 +43,9 @@ public class ConnectionFactoryPropertiesTest extends ActiveMQTestBase {
       UNSUPPORTED_CF_PROPERTIES.add("discoveryGroupName");
       UNSUPPORTED_CF_PROPERTIES.add("incomingInterceptorList");
       UNSUPPORTED_CF_PROPERTIES.add("outgoingInterceptorList");
+      UNSUPPORTED_CF_PROPERTIES.add("user");
+      UNSUPPORTED_CF_PROPERTIES.add("userName");
+      UNSUPPORTED_CF_PROPERTIES.add("password");
 
       UNSUPPORTED_RA_PROPERTIES = new TreeSet<>();
       UNSUPPORTED_RA_PROPERTIES.add("HA");
@@ -63,6 +66,7 @@ public class ConnectionFactoryPropertiesTest extends ActiveMQTestBase {
       UNSUPPORTED_RA_PROPERTIES.add("useAutoRecovery");
       UNSUPPORTED_RA_PROPERTIES.add("useLocalTx");
       UNSUPPORTED_RA_PROPERTIES.add("userName");
+      UNSUPPORTED_CF_PROPERTIES.add("user");
       UNSUPPORTED_RA_PROPERTIES.add("jgroupsChannelLocatorClass");
       UNSUPPORTED_RA_PROPERTIES.add("jgroupsChannelRefName");
       UNSUPPORTED_RA_PROPERTIES.add("entries");
@@ -76,6 +80,9 @@ public class ConnectionFactoryPropertiesTest extends ActiveMQTestBase {
    public void testCompareConnectionFactoryAndResourceAdapterProperties() throws Exception {
       SortedSet<String> connectionFactoryProperties = findAllPropertyNames(ActiveMQConnectionFactory.class);
       connectionFactoryProperties.removeAll(UNSUPPORTED_CF_PROPERTIES);
+      for (String str : connectionFactoryProperties) {
+         System.out.println("ConnectionFactory Property:" + str);
+      }
       SortedSet<String> raProperties = findAllPropertyNames(ActiveMQResourceAdapter.class);
       raProperties.removeAll(UNSUPPORTED_RA_PROPERTIES);
 
