@@ -100,4 +100,8 @@ public interface Packet {
     * this gives a chance to sub classes to cleanup anything that won't be used. */
    default void release() {
    }
+   
+   default boolean isRequiresResponse(){
+      return false;
+   }
 }

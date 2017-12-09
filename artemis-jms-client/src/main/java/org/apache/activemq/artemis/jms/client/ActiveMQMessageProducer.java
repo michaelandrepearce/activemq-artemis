@@ -579,6 +579,31 @@ public class ActiveMQMessageProducer implements MessageProducer, QueueSender, To
       }
 
       @Override
+      public void sendException(org.apache.activemq.artemis.api.core.Message clientMessage, Exception exception) {
+         if (jmsMessage instanceof StreamMessage) {
+            try {
+               ((StreamMessage) jmsMessage).reset();
+            } catch (JMSException e) {
+               // HORNETQ-1209 XXX ignore?
+            }
+         }
+         if (jmsMessage instanceof BytesMessage) {
+            try {
+               ((BytesMessage) jmsMessage).reset();
+            } catch (JMSException e) {
+               // HORNETQ-1209 XXX ignore?
+            }
+         }
+
+         try {
+            producer.connection.getThreadAwareContext().setCurrentThread(true);
+            completionListener.onException(jmsMessage, exception);
+         } finally {
+            producer.connection.getThreadAwareContext().clearCurrentThread(true);
+         }
+      }
+
+      @Override
       public String toString() {
          return CompletionListenerWrapper.class.getSimpleName() + "( completionListener=" + completionListener + ")";
       }

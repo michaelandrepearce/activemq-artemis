@@ -62,6 +62,8 @@ import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.CreateSess
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.CreateSharedQueueMessage_V2;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.DisconnectConsumerMessage;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.DisconnectConsumerWithKillMessage;
+import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.MessagePacket;
+import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.NullResponseMessage;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ReattachSessionMessage;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ReattachSessionResponseMessage;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.RollbackMessage;
@@ -115,6 +117,7 @@ import org.jboss.logging.Logger;
 
 import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.DISCONNECT_CONSUMER;
 import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.EXCEPTION;
+import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.NULL_RESPONSE;
 import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.SESS_RECEIVE_CONTINUATION;
 import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.SESS_RECEIVE_LARGE_MSG;
 import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.SESS_RECEIVE_MSG;
@@ -181,24 +184,62 @@ public class ActiveMQSessionContext extends SessionContext {
    }
 
    private final CommandConfirmationHandler confirmationHandler = new CommandConfirmationHandler() {
+      
+      private Packet packetAwaitingResponse;
+      
       @Override
       public void commandConfirmed(final Packet packet) {
+         commandConfirmed(packet, null);
+
+         if (packet.getType() == PacketImpl.SESS_SEND || packet.getType() == PacketImpl.SESS_SEND_CONTINUATION) {
+            if (packetAwaitingResponse != null && packet.isResponse()) {
+               commandConfirmed(packetAwaitingResponse, packet);
+               packetAwaitingResponse = null;
+            } else if (packet.isRequiresResponse()) {
+               packetAwaitingResponse = packet;
+            } else {
+               commandConfirmed(packet, null);
+               packetAwaitingResponse = null;
+            }
+         } else {
+            commandConfirmed(packet, null);
+            packetAwaitingResponse = null;
+         }
+      }
+      
+      public void commandConfirmed(final Packet packet, final Packet response) {
+         ActiveMQException exception = null;
+         if (response != null) {
+            if (response.getType() == PacketImpl.EXCEPTION) {
+               ActiveMQExceptionMessage activeMQExceptionMessage = (ActiveMQExceptionMessage) packet;
+               exception = activeMQExceptionMessage.getException();
+            }
+         }
          if (packet.getType() == PacketImpl.SESS_SEND) {
             SessionSendMessage ssm = (SessionSendMessage) packet;
-            callSendAck(ssm.getHandler(), ssm.getMessage());
+            callSendAck(ssm.getHandler(), ssm.getMessage(), exception);
          } else if (packet.getType() == PacketImpl.SESS_SEND_CONTINUATION) {
             SessionSendContinuationMessage scm = (SessionSendContinuationMessage) packet;
             if (!scm.isContinues()) {
-               callSendAck(scm.getHandler(), scm.getMessage());
+               callSendAck(scm.getHandler(), scm.getMessage(), exception);
             }
          }
+         
       }
 
-      private void callSendAck(SendAcknowledgementHandler handler, final Message message) {
+      private void callSendAck(SendAcknowledgementHandler handler, final Message message, final Exception exception) {
          if (handler != null) {
-            handler.sendAcknowledged(message);
+            if (exception == null) {
+               handler.sendAcknowledged(message);
+            } else {
+               handler.sendException(message, exception);
+            }
          } else if (sendAckHandler != null) {
-            sendAckHandler.sendAcknowledged(message);
+            if (exception == null) {
+               sendAckHandler.sendAcknowledged(message);
+            } else {
+               sendAckHandler.sendException(message, exception);
+            }
          }
       }
 
@@ -441,7 +482,7 @@ public class ActiveMQSessionContext extends SessionContext {
                                boolean sendBlocking,
                                SendAcknowledgementHandler handler,
                                SimpleString defaultAddress) throws ActiveMQException {
-      SessionSendMessage packet = new SessionSendMessage(msgI, sendBlocking, handler);
+      SessionSendMessage packet = new SessionSendMessage(msgI, true, handler);
 
       if (sendBlocking) {
          sessionChannel.sendBlocking(packet, PacketImpl.NULL_RESPONSE);
@@ -900,7 +941,6 @@ public class ActiveMQSessionContext extends SessionContext {
                   ActiveMQExceptionMessage mem = (ActiveMQExceptionMessage) packet;
 
                   ActiveMQClientLogger.LOGGER.receivedExceptionAsynchronously(mem.getException());
-
                   break;
                }
                default: {
@@ -910,7 +950,7 @@ public class ActiveMQSessionContext extends SessionContext {
          } catch (Exception e) {
             ActiveMQClientLogger.LOGGER.failedToHandlePacket(e);
          }
-
+         
          sessionChannel.confirm(packet);
       }
    }

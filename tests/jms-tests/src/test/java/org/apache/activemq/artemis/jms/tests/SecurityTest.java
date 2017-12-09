@@ -18,14 +18,18 @@ package org.apache.activemq.artemis.jms.tests;
 
 import static org.junit.Assert.fail;
 
+import javax.jms.CompletionListener;
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.DeliveryMode;
 import javax.jms.Destination;
 import javax.jms.IllegalStateException;
 import javax.jms.JMSSecurityException;
+import javax.jms.Message;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
+
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
 import org.apache.activemq.artemis.jms.client.DefaultConnectionProperties;
@@ -202,17 +206,38 @@ public class SecurityTest extends JMSTestCase {
     */
    @Test
    public void testLoginValidUserAndPasswordButNotAuthorisedToSendNonPersistent() throws Exception {
-      ConnectionFactory connectionFactory = new ActiveMQConnectionFactory("tcp://localhost:61616");
+      ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory("tcp://localhost:61616");
+      connectionFactory.setConfirmationWindowSize(100);
+      connectionFactory.setBlockOnDurableSend(true);
+      connectionFactory.setBlockOnNonDurableSend(true);
       Connection connection = connectionFactory.createConnection("guest", "guest");
       Session session = connection.createSession();
       Destination destination = session.createQueue("guest.cannot.send");
       MessageProducer messageProducer = session.createProducer(destination);
       messageProducer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
       try {
-         messageProducer.send(session.createTextMessage("hello"));
+         AtomicReference<Exception> e = new AtomicReference<>();
+ //        messageProducer.send(session.createTextMessage("hello"));
+
+         messageProducer.send(session.createTextMessage("hello"), new CompletionListener() {
+            @Override
+            public void onCompletion(Message message) {
+//               fail("JMSSecurityException expected as guest is not allowed to send");
+            }
+
+            @Override
+            public void onException(Message message, Exception exception) {
+               System.out.println(exception);
+               e.set(exception);
+            }
+         });
+         Thread.sleep(10000);
+         if (e.get() != null) {
+            throw e.get();
+         }
          fail("JMSSecurityException expected as guest is not allowed to send");
       } catch (JMSSecurityException activeMQSecurityException) {
-         //pass
+         activeMQSecurityException.printStackTrace();
       }
       connection.close();
    }

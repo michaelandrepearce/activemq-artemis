@@ -16,6 +16,12 @@
  */
 package org.apache.activemq.artemis.core.deployers.impl;
 
+import javax.xml.XMLConstants;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import javax.xml.validation.Validator;
+import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
@@ -253,6 +259,10 @@ public final class FileConfigurationParser extends XMLConfigurationUtil {
       String xml = XMLUtil.readerToString(reader);
       xml = XMLUtil.replaceSystemProps(xml);
       Element e = XMLUtil.stringToElement(xml);
+      SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+      Schema schema = schemaFactory.newSchema(new File("schema/artemis-configuration.xsd"));
+      Validator validator = schema.newValidator();
+      validator.validate(new DOMSource(e));
 
       Configuration config = new ConfigurationImpl();
 

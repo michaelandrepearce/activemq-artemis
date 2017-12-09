@@ -41,4 +41,7 @@ public interface SendAcknowledgementHandler {
     * @param message message sent asynchronously
     */
    void sendAcknowledged(Message message);
+   
+   default void sendException(Message message, Exception exception) {
+   }
 }

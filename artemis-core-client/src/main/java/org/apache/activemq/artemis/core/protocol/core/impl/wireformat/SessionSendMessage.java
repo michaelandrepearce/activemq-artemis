@@ -52,6 +52,7 @@ public class SessionSendMessage extends MessagePacket {
 
    // Public --------------------------------------------------------
 
+   @Override
    public boolean isRequiresResponse() {
       return requiresResponse;
    }

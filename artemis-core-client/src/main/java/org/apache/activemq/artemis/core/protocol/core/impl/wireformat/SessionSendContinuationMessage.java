@@ -77,6 +77,7 @@ public class SessionSendContinuationMessage extends SessionContinuationMessage {
    /**
     * @return the requiresResponse
     */
+   @Override
    public boolean isRequiresResponse() {
       return requiresResponse;
    }

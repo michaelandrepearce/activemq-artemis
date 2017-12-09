@@ -28,6 +28,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.activemq.artemis.api.core.ActiveMQBuffer;
 import org.apache.activemq.artemis.api.core.ActiveMQException;
 import org.apache.activemq.artemis.api.core.ActiveMQInterruptedException;
+import org.apache.activemq.artemis.api.core.ActiveMQSecurityException;
 import org.apache.activemq.artemis.api.core.Interceptor;
 import org.apache.activemq.artemis.core.client.ActiveMQClientLogger;
 import org.apache.activemq.artemis.core.client.ActiveMQClientMessageBundle;
@@ -419,7 +420,7 @@ public final class ChannelImpl implements Channel {
                final ActiveMQExceptionMessage mem = (ActiveMQExceptionMessage) response;
 
                ActiveMQException e = mem.getException();
-
+               e = new ActiveMQSecurityException(id + " " + response.getChannelID() + " " + e.getMessage());
                e.fillInStackTrace();
 
                throw e;
