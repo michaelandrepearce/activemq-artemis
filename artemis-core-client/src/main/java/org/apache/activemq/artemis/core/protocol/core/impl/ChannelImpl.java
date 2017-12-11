@@ -37,6 +37,7 @@ import org.apache.activemq.artemis.core.protocol.core.ChannelHandler;
 import org.apache.activemq.artemis.core.protocol.core.CommandConfirmationHandler;
 import org.apache.activemq.artemis.core.protocol.core.CoreRemotingConnection;
 import org.apache.activemq.artemis.core.protocol.core.Packet;
+import org.apache.activemq.artemis.core.protocol.core.ResponseHandler;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ActiveMQExceptionMessage;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.PacketsConfirmedMessage;
 import org.apache.activemq.artemis.spi.core.protocol.RemotingConnection;
@@ -122,6 +123,8 @@ public final class ChannelImpl implements Channel {
    private int receivedBytes;
 
    private CommandConfirmationHandler commandConfirmationHandler;
+   
+   private ResponseHandler responseHandler;
 
    private volatile boolean transferring;
 
@@ -655,6 +658,9 @@ public final class ChannelImpl implements Channel {
                sendCondition.signal();
             } finally {
                lock.unlock();
+            }
+            if (connection.isClient() && packet.getType() == PacketImpl.EXCEPTION && handler != null) {
+               handler.handlePacket(packet);
             }
          } else if (handler != null) {
             handler.handlePacket(packet);

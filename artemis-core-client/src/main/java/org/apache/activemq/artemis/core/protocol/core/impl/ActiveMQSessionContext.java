@@ -189,9 +189,8 @@ public class ActiveMQSessionContext extends SessionContext {
       
       @Override
       public void commandConfirmed(final Packet packet) {
-         commandConfirmed(packet, null);
 
-         if (packet.getType() == PacketImpl.SESS_SEND || packet.getType() == PacketImpl.SESS_SEND_CONTINUATION) {
+         if (packet.getType() == PacketImpl.EXCEPTION || packet.getType() == PacketImpl.SESS_SEND || packet.getType() == PacketImpl.SESS_SEND_CONTINUATION) {
             if (packetAwaitingResponse != null && packet.isResponse()) {
                commandConfirmed(packetAwaitingResponse, packet);
                packetAwaitingResponse = null;
@@ -939,7 +938,6 @@ public class ActiveMQSessionContext extends SessionContext {
                   // We can only log these exceptions
                   // maybe we should cache it on SessionContext and throw an exception on any next calls
                   ActiveMQExceptionMessage mem = (ActiveMQExceptionMessage) packet;
-
                   ActiveMQClientLogger.LOGGER.receivedExceptionAsynchronously(mem.getException());
                   break;
                }

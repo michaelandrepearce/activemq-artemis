@@ -104,6 +104,7 @@ import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.CRE
 import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.CREATE_SHARED_QUEUE;
 import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.CREATE_SHARED_QUEUE_V2;
 import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.DELETE_QUEUE;
+import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.EXCEPTION;
 import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.SESS_ACKNOWLEDGE;
 import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.SESS_BINDINGQUERY;
 import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.SESS_CLOSE;
@@ -847,7 +848,6 @@ public class ServerSessionPacketHandler implements ChannelHandler {
             channel.flushConfirmations();
          }
       }
-
       if (response != null) {
          channel.send(response);
       }

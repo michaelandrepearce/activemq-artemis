@@ -196,6 +196,8 @@ public class SecurityTest extends JMSTestCase {
       } catch (JMSSecurityException activeMQSecurityException) {
          //pass
       }
+      Thread.sleep(10000);
+
       connection.close();
    }
 
@@ -208,8 +210,8 @@ public class SecurityTest extends JMSTestCase {
    public void testLoginValidUserAndPasswordButNotAuthorisedToSendNonPersistent() throws Exception {
       ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory("tcp://localhost:61616");
       connectionFactory.setConfirmationWindowSize(100);
-      connectionFactory.setBlockOnDurableSend(true);
-      connectionFactory.setBlockOnNonDurableSend(true);
+      connectionFactory.setBlockOnDurableSend(false);
+      connectionFactory.setBlockOnNonDurableSend(false);
       Connection connection = connectionFactory.createConnection("guest", "guest");
       Session session = connection.createSession();
       Destination destination = session.createQueue("guest.cannot.send");
@@ -222,12 +224,13 @@ public class SecurityTest extends JMSTestCase {
          messageProducer.send(session.createTextMessage("hello"), new CompletionListener() {
             @Override
             public void onCompletion(Message message) {
+               System.out.println(message);
 //               fail("JMSSecurityException expected as guest is not allowed to send");
             }
 
             @Override
             public void onException(Message message, Exception exception) {
-               System.out.println(exception);
+               System.err.println(exception);
                e.set(exception);
             }
          });
