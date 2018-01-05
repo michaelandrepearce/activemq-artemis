@@ -19,7 +19,10 @@ package org.apache.activemq.artemis.api.core;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
+import com.google.common.collect.Interner;
+import com.google.common.collect.Interners;
 import io.netty.buffer.ByteBuf;
 import org.apache.activemq.artemis.utils.DataConstants;
 
@@ -32,6 +35,31 @@ import org.apache.activemq.artemis.utils.DataConstants;
 public final class SimpleString implements CharSequence, Serializable, Comparable<SimpleString> {
 
    private static final long serialVersionUID = 4204223851422244307L;
+   
+   private static Interner<SimpleString> interner = Interners.newWeakInterner();
+
+   private static Function<String, SimpleString> stringToSimpleString = (string) -> {
+      if (string == null) {
+         return null;
+      }
+      return new SimpleString(string).intern();
+   };
+
+   private static Function<byte[], SimpleString> bytesToSimpleString = (bytes) -> {
+      if (bytes == null) {
+         return null;
+      }
+      return new SimpleString(bytes).intern();
+   };
+   
+   public static SimpleString intern(SimpleString simpleString) {
+      return interner.intern(simpleString);
+   }
+   
+   public SimpleString intern() {
+      return intern(this);
+   }
+
 
    // Attributes
    // ------------------------------------------------------------------------
@@ -45,6 +73,7 @@ public final class SimpleString implements CharSequence, Serializable, Comparabl
    // Static
    // ----------------------------------------------------------------------
 
+   
    /**
     * Returns a SimpleString constructed from the {@code string} parameter.
     * <p>
@@ -54,10 +83,11 @@ public final class SimpleString implements CharSequence, Serializable, Comparabl
     * @return A new SimpleString
     */
    public static SimpleString toSimpleString(final String string) {
-      if (string == null) {
-         return null;
-      }
-      return new SimpleString(string);
+      return stringToSimpleString.apply(string);
+   }
+
+   public static SimpleString toSimpleString(final byte[] bytes) {
+      return bytesToSimpleString.apply(bytes);
    }
 
    // Constructors
@@ -151,7 +181,7 @@ public final class SimpleString implements CharSequence, Serializable, Comparabl
       }
       byte[] data = new byte[len];
       buffer.readBytes(data);
-      return new SimpleString(data);
+      return SimpleString.toSimpleString(data);
    }
 
    public static void writeNullableSimpleString(ByteBuf buffer, SimpleString val) {
@@ -182,7 +212,7 @@ public final class SimpleString implements CharSequence, Serializable, Comparabl
 
          System.arraycopy(data, start << 1, bytes, 0, newlen);
 
-         return new SimpleString(bytes);
+         return SimpleString.toSimpleString(bytes);
       }
    }
 
@@ -316,7 +346,7 @@ public final class SimpleString implements CharSequence, Serializable, Comparabl
                // Note by Clebert
                all = new ArrayList<>(2);
             }
-            all.add(new SimpleString(bytes));
+            all.add(SimpleString.toSimpleString(bytes));
          }
       }
 
@@ -326,7 +356,7 @@ public final class SimpleString implements CharSequence, Serializable, Comparabl
          // Adding the last one
          byte[] bytes = new byte[data.length - lasPos];
          System.arraycopy(data, lasPos, bytes, 0, bytes.length);
-         all.add(new SimpleString(bytes));
+         all.add(SimpleString.toSimpleString(bytes));
 
          // Converting it to arrays
          SimpleString[] parts = new SimpleString[all.size()];
@@ -372,7 +402,7 @@ public final class SimpleString implements CharSequence, Serializable, Comparabl
       byte[] bytes = new byte[data.length + toAdd.getData().length];
       System.arraycopy(data, 0, bytes, 0, data.length);
       System.arraycopy(toAdd.getData(), 0, bytes, data.length, toAdd.getData().length);
-      return new SimpleString(bytes);
+      return SimpleString.toSimpleString(bytes);
    }
 
    /**
@@ -386,7 +416,7 @@ public final class SimpleString implements CharSequence, Serializable, Comparabl
       System.arraycopy(data, 0, bytes, 0, data.length);
       bytes[data.length] = (byte) (c & 0xFF);
       bytes[data.length + 1] = (byte) (c >> 8 & 0xFF);
-      return new SimpleString(bytes);
+      return SimpleString.toSimpleString(bytes);
    }
 
    /**
