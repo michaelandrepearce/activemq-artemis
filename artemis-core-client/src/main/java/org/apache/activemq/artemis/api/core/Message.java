@@ -587,6 +587,8 @@ public interface Message {
 
    Message putStringProperty(SimpleString key, SimpleString value);
 
+   Message putStringProperty(SimpleString key, String value);
+
    /**
     * Returns the size of the <em>encoded</em> message.
     */

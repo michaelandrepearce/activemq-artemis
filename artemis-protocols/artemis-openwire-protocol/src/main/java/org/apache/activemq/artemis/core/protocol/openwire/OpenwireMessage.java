@@ -442,6 +442,11 @@ public class OpenwireMessage implements Message {
    }
 
    @Override
+   public Message putStringProperty(SimpleString key, String value) {
+      return null;
+   }
+
+   @Override
    public int getEncodeSize() {
       return 0;
    }

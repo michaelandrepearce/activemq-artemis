@@ -26,6 +26,7 @@ public class CoreMessageObjectPools {
    private Supplier<SimpleString.ByteBufSimpleStringPool> addressDecoderPool = Suppliers.memoize(SimpleString.ByteBufSimpleStringPool::new);
    private Supplier<TypedProperties.TypedPropertiesDecoderPools> propertiesDecoderPools = Suppliers.memoize(TypedProperties.TypedPropertiesDecoderPools::new);
 
+   private Supplier<SimpleString.StringSimpleStringPool> groupIdStringSimpleStringPool = Suppliers.memoize(SimpleString.StringSimpleStringPool::new);
    private Supplier<SimpleString.StringSimpleStringPool> addressStringSimpleStringPool = Suppliers.memoize(SimpleString.StringSimpleStringPool::new);
    private Supplier<TypedProperties.TypedPropertiesStringSimpleStringPools> propertiesStringSimpleStringPools = Suppliers.memoize(TypedProperties.TypedPropertiesStringSimpleStringPools::new);
 
@@ -40,6 +41,9 @@ public class CoreMessageObjectPools {
       return addressStringSimpleStringPool.get();
    }
 
+   public SimpleString.StringSimpleStringPool getGroupIdStringSimpleStringPool() {
+      return groupIdStringSimpleStringPool.get();
+   }
 
    public TypedProperties.TypedPropertiesDecoderPools getPropertiesDecoderPools() {
       return propertiesDecoderPools.get();

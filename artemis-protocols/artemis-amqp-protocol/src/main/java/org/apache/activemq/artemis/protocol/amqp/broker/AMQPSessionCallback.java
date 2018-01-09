@@ -29,6 +29,7 @@ import org.apache.activemq.artemis.api.core.RoutingType;
 import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.api.core.client.ActiveMQClient;
 import org.apache.activemq.artemis.core.io.IOCallback;
+import org.apache.activemq.artemis.core.message.impl.CoreMessageObjectPools;
 import org.apache.activemq.artemis.core.paging.PagingStore;
 import org.apache.activemq.artemis.core.persistence.OperationContext;
 import org.apache.activemq.artemis.core.persistence.StorageManager;
@@ -101,6 +102,7 @@ public class AMQPSessionCallback implements SessionCallback {
 
    private final AtomicBoolean draining = new AtomicBoolean(false);
 
+   private CoreMessageObjectPools coreMessageObjectPools = new CoreMessageObjectPools();
 
    private final AddressQueryCache<AddressQueryResult> addressQueryCache = new AddressQueryCache<>();
 
@@ -441,9 +443,9 @@ public class AMQPSessionCallback implements SessionCallback {
                           String address,
                           int messageFormat,
                           byte[] data) throws Exception {
-      AMQPMessage message = new AMQPMessage(messageFormat, data);
+      AMQPMessage message = new AMQPMessage(messageFormat, data, coreMessageObjectPools);
       if (address != null) {
-         message.setAddress(new SimpleString(address));
+         message.setAddress(address);
       } else {
          // Anonymous relay must set a To value
          address = message.getAddress();

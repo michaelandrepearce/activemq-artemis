@@ -302,6 +302,11 @@ public class ClientMessageImpl extends CoreMessage implements ClientMessageInter
    }
 
    @Override
+   public ClientMessageImpl putStringProperty(final SimpleString key, final String value) {
+      return (ClientMessageImpl) super.putStringProperty(key, value);
+   }
+
+   @Override
    public ClientMessageImpl putObjectProperty(final SimpleString key,
                                               final Object value) throws ActiveMQPropertyConversionException {
       return (ClientMessageImpl) super.putObjectProperty(key, value);

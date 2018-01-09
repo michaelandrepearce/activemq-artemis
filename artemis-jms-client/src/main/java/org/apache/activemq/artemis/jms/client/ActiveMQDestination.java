@@ -192,7 +192,15 @@ public class ActiveMQDestination extends JNDIStorable implements Destination, Se
       return new ActiveMQQueue(address);
    }
 
+   public static ActiveMQQueue createQueue(final SimpleString address) {
+      return new ActiveMQQueue(address);
+   }
+
    public static ActiveMQTopic createTopic(final String address) {
+      return new ActiveMQTopic(address);
+   }
+
+   public static ActiveMQTopic createTopic(final SimpleString address) {
       return new ActiveMQTopic(address);
    }
 

@@ -322,9 +322,13 @@ public class CoreMessage extends RefCountMessage implements ICoreMessage {
    }
 
    public CoreMessage(long id, int bufferSize) {
+      this(id, bufferSize, null);
+   }
+
+   public CoreMessage(long id, int bufferSize, CoreMessageObjectPools coreMessageObjectPools) {
       this.initBuffer(bufferSize);
       this.setMessageID(id);
-      this.coreMessageObjectPools = null;
+      this.coreMessageObjectPools = coreMessageObjectPools;
    }
 
    protected CoreMessage(CoreMessage other, TypedProperties copyProperties) {
@@ -909,6 +913,15 @@ public class CoreMessage extends RefCountMessage implements ICoreMessage {
    }
 
    @Override
+   public CoreMessage putStringProperty(final SimpleString key, final String value) {
+      messageChanged();
+      checkProperties();
+      properties.putSimpleStringProperty(key, SimpleString.toSimpleString(value, getPropertyValuesPool()));
+      return this;
+   }
+
+
+   @Override
    public CoreMessage putStringProperty(final String key, final String value) {
       messageChanged();
       checkProperties();
@@ -1121,11 +1134,11 @@ public class CoreMessage extends RefCountMessage implements ICoreMessage {
       }
    }
 
-   public SimpleString.StringSimpleStringPool getPropertyKeysPool() {
+   private SimpleString.StringSimpleStringPool getPropertyKeysPool() {
       return coreMessageObjectPools == null ? null : coreMessageObjectPools.getPropertiesStringSimpleStringPools().getPropertyKeysPool();
    }
 
-   public SimpleString.StringSimpleStringPool getPropertyValuesPool() {
+   private SimpleString.StringSimpleStringPool getPropertyValuesPool() {
       return coreMessageObjectPools == null ? null : coreMessageObjectPools.getPropertiesStringSimpleStringPools().getPropertyValuesPool();
    }
 }

@@ -591,6 +591,11 @@ public class ScheduledDeliveryHandlerTest extends Assert {
       }
 
       @Override
+      public Message putStringProperty(SimpleString key, String value) {
+         return null;
+      }
+
+      @Override
       public Message putStringProperty(String key, String value) {
          return null;
       }
