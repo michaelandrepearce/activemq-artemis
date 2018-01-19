@@ -224,11 +224,21 @@ public interface Message {
    void messageChanged();
 
    /** Used to calculate what is the delivery time.
-    *  Return null if not scheduled. */
-   Long getScheduledDeliveryTime();
+    *  Return 0 if not scheduled. */
+   long getScheduledDeliveryTime();
 
-   default Message setScheduledDeliveryTime(Long time) {
+   /**
+    * Avoids autoboxing.
+    */
+   default Message setScheduledDeliveryTime(long time) {
       return this;
+   }
+
+   /**
+    * Used for api back compatibility only.
+    */
+   default Message setScheduledDeliveryTime(Long time) {
+      return setScheduledDeliveryTime(time == null ? 0L : time);
    }
 
    /** Context can be used by the application server to inject extra control, like a protocol specific on the server.
@@ -240,6 +250,10 @@ public interface Message {
 
    default SimpleString getGroupID() {
       return null;
+   }
+
+   default Message setGroupID(SimpleString groupID) {
+      return this;
    }
 
    SimpleString getReplyTo();
@@ -325,11 +339,19 @@ public interface Message {
 
    Message setUserID(Object userID);
 
-   default  String getValidatedUserID() {
+   default String getValidatedUserID() {
+      return null;
+   }
+
+   default SimpleString getValidatedUserIDSimpleString() {
       return null;
    }
 
    default Message setValidatedUserID(String validatedUserID) {
+      return this;
+   }
+
+   default Message setValidatedUserID(SimpleString validatedUserID) {
       return this;
    }
 
@@ -461,6 +483,14 @@ public interface Message {
 
    default Object getDuplicateProperty() {
       return null;
+   }
+
+   default SimpleString getDuplicateId() {
+      return null;
+   }
+
+   default Message setDuplicateId(SimpleString duplicateId) {
+      return this;
    }
 
    Message putBooleanProperty(String key, boolean value);

@@ -63,8 +63,8 @@ public class OpenwireMessage implements Message {
    }
 
    @Override
-   public Long getScheduledDeliveryTime() {
-      return null;
+   public long getScheduledDeliveryTime() {
+      return 0;
    }
 
    @Override

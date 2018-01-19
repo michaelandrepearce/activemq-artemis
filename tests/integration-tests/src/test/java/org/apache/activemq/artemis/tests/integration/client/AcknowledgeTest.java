@@ -381,8 +381,8 @@ public class AcknowledgeTest extends ActiveMQTestBase {
       }
 
       @Override
-      public Long getScheduledDeliveryTime() {
-         return null;
+      public long getScheduledDeliveryTime() {
+         return 0L;
       }
 
       @Override

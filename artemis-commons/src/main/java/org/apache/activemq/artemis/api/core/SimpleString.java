@@ -283,13 +283,20 @@ public final class SimpleString implements CharSequence, Serializable, Comparabl
       if (this == other) {
          return true;
       }
-
       if (other instanceof SimpleString) {
          SimpleString s = (SimpleString) other;
 
          return ByteUtil.equals(data, s.data);
       } else {
          return false;
+      }
+   }
+
+   public static boolean equals(final SimpleString left, final SimpleString right) {
+      if (left == null) {
+         return right == null;
+      } else {
+         return left.equals(right);
       }
    }
 
@@ -337,7 +344,6 @@ public final class SimpleString implements CharSequence, Serializable, Comparabl
 
       byte low = (byte) (delim & 0xFF); // low byte
       byte high = (byte) (delim >> 8 & 0xFF); // high byte
-
       int lasPos = 0;
       for (int i = 0; i < data.length; i += 2) {
          if (data[i] == low && data[i + 1] == high) {

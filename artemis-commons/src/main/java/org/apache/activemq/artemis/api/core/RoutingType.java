@@ -31,6 +31,14 @@ public enum RoutingType {
       }
    }
 
+   public static byte getType(RoutingType routingType) {
+      if (routingType == null) {
+         return -1;
+      } else {
+         return routingType.getType();
+      }
+   }
+
    public static RoutingType getType(byte type) {
       switch (type) {
          case 0:

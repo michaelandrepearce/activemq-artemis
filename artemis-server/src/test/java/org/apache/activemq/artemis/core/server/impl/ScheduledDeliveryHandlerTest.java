@@ -314,8 +314,8 @@ public class ScheduledDeliveryHandlerTest extends Assert {
       }
 
       @Override
-      public Long getScheduledDeliveryTime() {
-         return null;
+      public long getScheduledDeliveryTime() {
+         return 0;
       }
 
       @Override

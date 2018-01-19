@@ -23,19 +23,36 @@ import org.apache.activemq.artemis.utils.collections.TypedProperties;
 
 public class CoreMessageObjectPools {
 
+   private Supplier<SimpleString.ByteBufSimpleStringPool> groupIdDecoderPool = Suppliers.memoize(SimpleString.ByteBufSimpleStringPool::new);
    private Supplier<SimpleString.ByteBufSimpleStringPool> addressDecoderPool = Suppliers.memoize(SimpleString.ByteBufSimpleStringPool::new);
+   private Supplier<SimpleString.ByteBufSimpleStringPool> validatedUserIDDecoderPool = Suppliers.memoize(SimpleString.ByteBufSimpleStringPool::new);
+   private Supplier<SimpleString.ByteBufSimpleStringPool> lastKeyValueDecoderPool = Suppliers.memoize(SimpleString.ByteBufSimpleStringPool::new);
    private Supplier<TypedProperties.TypedPropertiesDecoderPools> propertiesDecoderPools = Suppliers.memoize(TypedProperties.TypedPropertiesDecoderPools::new);
 
    private Supplier<SimpleString.StringSimpleStringPool> groupIdStringSimpleStringPool = Suppliers.memoize(SimpleString.StringSimpleStringPool::new);
    private Supplier<SimpleString.StringSimpleStringPool> addressStringSimpleStringPool = Suppliers.memoize(SimpleString.StringSimpleStringPool::new);
+   private Supplier<SimpleString.StringSimpleStringPool> validatedUserIDStringSimpleStringPool = Suppliers.memoize(SimpleString.StringSimpleStringPool::new);
    private Supplier<TypedProperties.TypedPropertiesStringSimpleStringPools> propertiesStringSimpleStringPools = Suppliers.memoize(TypedProperties.TypedPropertiesStringSimpleStringPools::new);
 
    public CoreMessageObjectPools() {
    }
 
+   public SimpleString.ByteBufSimpleStringPool getGroupIdDecoderPool() {
+      return groupIdDecoderPool.get();
+   }
+
    public SimpleString.ByteBufSimpleStringPool getAddressDecoderPool() {
       return addressDecoderPool.get();
    }
+
+   public SimpleString.ByteBufSimpleStringPool getValidatedUserIDDecoderPool() {
+      return validatedUserIDDecoderPool.get();
+   }
+
+   public SimpleString.ByteBufSimpleStringPool getLastKeyValueDecoderPool() {
+      return lastKeyValueDecoderPool.get();
+   }
+
 
    public SimpleString.StringSimpleStringPool getAddressStringSimpleStringPool() {
       return addressStringSimpleStringPool.get();
@@ -43,6 +60,10 @@ public class CoreMessageObjectPools {
 
    public SimpleString.StringSimpleStringPool getGroupIdStringSimpleStringPool() {
       return groupIdStringSimpleStringPool.get();
+   }
+
+   public SimpleString.StringSimpleStringPool getValidatedUserIDStringSimpleStringPool() {
+      return validatedUserIDStringSimpleStringPool.get();
    }
 
    public TypedProperties.TypedPropertiesDecoderPools getPropertiesDecoderPools() {

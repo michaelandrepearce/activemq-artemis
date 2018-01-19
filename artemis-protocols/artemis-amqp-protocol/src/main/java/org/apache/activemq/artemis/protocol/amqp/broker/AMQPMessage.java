@@ -317,7 +317,7 @@ public class AMQPMessage extends RefCountMessage {
    }
 
    @Override
-   public Long getScheduledDeliveryTime() {
+   public long getScheduledDeliveryTime() {
 
       if (scheduledTime < 0) {
          Object objscheduledTime = getSymbol("x-opt-delivery-time");
