@@ -441,7 +441,7 @@ public final class XmlDataImporter extends ActionAbstract {
          logger.debug(logMessage);
       }
 
-      message.putBytesProperty(Message.HDR_ROUTE_TO_IDS, buffer.array());
+      message.setRouteToIds(buffer.array());
       try (ClientProducer producer = session.createProducer(destination)) {
          producer.send(message);
       }

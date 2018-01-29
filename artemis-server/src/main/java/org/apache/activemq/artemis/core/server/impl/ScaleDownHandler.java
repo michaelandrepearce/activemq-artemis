@@ -192,7 +192,7 @@ public class ScaleDownHandler {
                      buffer.putLong(queueID);
                   }
 
-                  message.putBytesProperty(Message.HDR_ROUTE_TO_IDS.toString(), buffer.array());
+                  message.setRouteToIds(buffer.array());
 
                   if (logger.isDebugEnabled()) {
                      if (messageReference.isPaged()) {
@@ -264,7 +264,7 @@ public class ScaleDownHandler {
                byte[] oldRouteToIDs = null;
 
                List<SimpleString> propertiesToRemove = new ArrayList<>();
-               message.removeProperty(Message.HDR_ROUTE_TO_IDS.toString());
+               message.setRouteToIds(null);
                for (SimpleString propName : message.getPropertyNames()) {
                   if (propName.startsWith(Message.HDR_ROUTE_TO_IDS)) {
                      if (propName.toString().endsWith(propertyEnd)) {
@@ -281,9 +281,9 @@ public class ScaleDownHandler {
                }
 
                if (queueOnTarget) {
-                  message.putBytesProperty(Message.HDR_ROUTE_TO_IDS.toString(), oldRouteToIDs);
+                  message.setRouteToIds(oldRouteToIDs);
                } else {
-                  message.putBytesProperty(Message.HDR_SCALEDOWN_TO_IDS.toString(), oldRouteToIDs);
+                  message.setScaleDownIds(oldRouteToIDs);
                }
 
                logger.debug("Scaling down message " + message + " from " + address + " to " + message.getAddress() + " on node " + targetNodeId);
@@ -383,7 +383,7 @@ public class ScaleDownHandler {
                buffer.putLong(id);
             }
             Message message = entry.getKey();
-            message.putBytesProperty(Message.HDR_ROUTE_TO_IDS.toString(), buffer.array());
+            message.setRouteToIds(buffer.array());
             ids = entry.getValue().getB();
             if (ids.size() > 0) {
                buffer = ByteBuffer.allocate(ids.size() * 8);

@@ -72,6 +72,35 @@ public final class SimpleString implements CharSequence, Serializable, Comparabl
       return pool.getOrCreate(string);
    }
 
+   public static SimpleString toSimpleString(final byte[] bytes) {
+      if (bytes == null) {
+         return null;
+      }
+      return new SimpleString(bytes);
+   }
+
+   public static SimpleString toSimpleString(final Object object) {
+      if (object == null) {
+         return null;
+      } else if (object instanceof SimpleString) {
+         return (SimpleString) object;
+      } else {
+         return new SimpleString(object.toString());
+      }
+   }
+
+   public static SimpleString toSimpleString(final Object object, StringSimpleStringPool pool) {
+      if (object == null) {
+         return null;
+      } else if (object instanceof SimpleString) {
+         return (SimpleString) object;
+      } else if (pool == null) {
+         return toSimpleString(object.toString());
+      } else {
+         return pool.getOrCreate(object.toString());
+      }
+   }
+
    // Constructors
    // ----------------------------------------------------------------------
 
@@ -151,11 +180,7 @@ public final class SimpleString implements CharSequence, Serializable, Comparabl
    }
 
    public static SimpleString readNullableSimpleString(ByteBuf buffer) {
-      int b = buffer.readByte();
-      if (b == DataConstants.NULL) {
-         return null;
-      }
-      return readSimpleString(buffer);
+      return toSimpleString(ByteUtil.readNullableBytes(buffer));
    }
 
    public static SimpleString readNullableSimpleString(ByteBuf buffer, ByteBufSimpleStringPool pool) {
@@ -167,8 +192,7 @@ public final class SimpleString implements CharSequence, Serializable, Comparabl
    }
 
    public static SimpleString readSimpleString(ByteBuf buffer) {
-      int len = buffer.readInt();
-      return readSimpleString(buffer, len);
+      return toSimpleString(ByteUtil.readBytes(buffer));
    }
 
    public static SimpleString readSimpleString(ByteBuf buffer, ByteBufSimpleStringPool pool) {
@@ -179,24 +203,15 @@ public final class SimpleString implements CharSequence, Serializable, Comparabl
    }
 
    public static SimpleString readSimpleString(final ByteBuf buffer, final int length) {
-      byte[] data = new byte[length];
-      buffer.readBytes(data);
-      return new SimpleString(data);
+      return toSimpleString(ByteUtil.readBytes(buffer, length));
    }
 
    public static void writeNullableSimpleString(ByteBuf buffer, SimpleString val) {
-      if (val == null) {
-         buffer.writeByte(DataConstants.NULL);
-      } else {
-         buffer.writeByte(DataConstants.NOT_NULL);
-         writeSimpleString(buffer, val);
-      }
+      ByteUtil.writeNullableBytes(buffer, val == null ? null : val.getData());
    }
 
    public static void writeSimpleString(ByteBuf buffer, SimpleString val) {
-      byte[] data = val.getData();
-      buffer.writeInt(data.length);
-      buffer.writeBytes(data);
+      ByteUtil.writeBytes(buffer, val.getData());
    }
 
    public SimpleString subSeq(final int start, final int end) {

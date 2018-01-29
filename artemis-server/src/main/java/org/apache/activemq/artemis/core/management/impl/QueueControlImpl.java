@@ -803,7 +803,7 @@ public class QueueControlImpl extends AbstractControl implements QueueControl {
          message.setAddress(queue.getAddress());
          ByteBuffer buffer = ByteBuffer.allocate(8);
          buffer.putLong(queue.getID());
-         message.putBytesProperty(Message.HDR_ROUTE_TO_IDS, buffer.array());
+         message.setRouteToIds(buffer.array());
          postOffice.route(message, true);
          return "" + message.getMessageID();
       } catch (ActiveMQException e) {

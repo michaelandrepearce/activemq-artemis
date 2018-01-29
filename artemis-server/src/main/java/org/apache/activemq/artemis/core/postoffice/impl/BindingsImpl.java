@@ -243,9 +243,10 @@ public final class BindingsImpl implements Bindings {
       /* This is a special treatment for scaled-down messages involving SnF queues.
        * See org.apache.activemq.artemis.core.server.impl.ScaleDownHandler.scaleDownMessages() for the logic that sends messages with this property
        */
-      byte[] ids = (byte[]) message.removeExtraBytesProperty(Message.HDR_SCALEDOWN_TO_IDS);
+      byte[] ids = message.getScaleDownIds();
 
       if (ids != null) {
+         message.setScaleDownIds(null);
          ByteBuffer buffer = ByteBuffer.wrap(ids);
          while (buffer.hasRemaining()) {
             long id = buffer.getLong();
@@ -253,7 +254,7 @@ public final class BindingsImpl implements Bindings {
                if (entry.getValue() instanceof RemoteQueueBinding) {
                   RemoteQueueBinding remoteQueueBinding = (RemoteQueueBinding) entry.getValue();
                   if (remoteQueueBinding.getRemoteQueueID() == id) {
-                     message.putBytesProperty(Message.HDR_ROUTE_TO_IDS, ByteBuffer.allocate(8).putLong(remoteQueueBinding.getID()).array());
+                     message.setRouteToIds(ByteBuffer.allocate(8).putLong(remoteQueueBinding.getID()).array());
                   }
                }
             }
@@ -273,7 +274,10 @@ public final class BindingsImpl implements Bindings {
 
       if (!routed) {
          // Remove the ids now, in order to avoid double check
-         ids = message.removeExtraBytesProperty(Message.HDR_ROUTE_TO_IDS);
+         ids = message.getRouteToIds();
+         if (ids != null) {
+            message.setRouteToIds(null);
+         }
 
          // Fetch the groupId now, in order to avoid double checking
          SimpleString groupId = message.getGroupID();

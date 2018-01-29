@@ -1282,10 +1282,10 @@ public class PostOfficeImpl implements PostOffice, NotificationListener, Binding
                                     AtomicBoolean startedTX) throws Exception {
       // Check the DuplicateCache for the Bridge first
 
-      Object bridgeDup = message.removeExtraBytesProperty(Message.HDR_BRIDGE_DUPLICATE_ID);
-      if (bridgeDup != null) {
+      byte[] bridgeDupBytes = message.getBridgeDuplicateId();
+      if (bridgeDupBytes != null) {
+         message.setBridgeDuplicateId(null);
          // if the message is being sent from the bridge, we just ignore the duplicate id, and use the internal one
-         byte[] bridgeDupBytes = (byte[]) bridgeDup;
 
          DuplicateIDCache cacheBridge = getDuplicateIDCache(BRIDGE_CACHE_STR.concat(context.getAddress(message).toString()));
 

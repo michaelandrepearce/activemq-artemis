@@ -38,6 +38,7 @@ import org.apache.activemq.artemis.core.message.LargeBodyEncoder;
 import org.apache.activemq.artemis.core.persistence.Persister;
 import org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl;
 import org.apache.activemq.artemis.reader.MessageUtil;
+import org.apache.activemq.artemis.utils.ByteUtil;
 import org.apache.activemq.artemis.utils.DataConstants;
 import org.apache.activemq.artemis.utils.UUID;
 import org.apache.activemq.artemis.utils.collections.TypedProperties;
@@ -103,6 +104,13 @@ public class CoreMessage extends RefCountMessage implements ICoreMessage {
 
    SimpleString duplicateId;
 
+   //Extra Byte Headers
+   byte[] bridgeDuplicateId;
+
+   byte[] scaleDownIds;
+
+   byte[] routeToIds;
+
    protected volatile TypedProperties properties;
 
    private final CoreMessageObjectPools coreMessageObjectPools;
@@ -129,7 +137,7 @@ public class CoreMessage extends RefCountMessage implements ICoreMessage {
 
    @Override
    public void cleanupInternalProperties() {
-      if (properties.hasInternalProperties()) {
+      if (properties != null && properties.hasInternalProperties()) {
          LinkedList<SimpleString> valuesToRemove = null;
 
          for (SimpleString name : getPropertyNames()) {
@@ -356,6 +364,12 @@ public class CoreMessage extends RefCountMessage implements ICoreMessage {
       this.lastKeyValueProperty = other.lastKeyValueProperty;
       this.validatedUserID = other.validatedUserID;
       this.duplicateId = other.duplicateId;
+
+      //Extra Byte Headers
+      this.bridgeDuplicateId = other.bridgeDuplicateId;
+      this.scaleDownIds = other.scaleDownIds;
+      this.routeToIds = other.routeToIds;
+
       this.coreMessageObjectPools = other.coreMessageObjectPools;
       if (copyProperties != null) {
          this.properties = new TypedProperties(copyProperties);
@@ -377,10 +391,16 @@ public class CoreMessage extends RefCountMessage implements ICoreMessage {
       priority = msg.getPriority();
       routingType = msg.getRoutingType();
       groupId = msg.getGroupID();
+      scheduledDeliveryTime = msg.getScheduledDeliveryTime();
       lastKeyValueProperty = msg.getLastValueProperty();
       validatedUserID = msg.getValidatedUserIDSimpleString();
       duplicateId = msg.getDuplicateId();
-      scheduledDeliveryTime = msg.getScheduledDeliveryTime();
+
+      //Extra Byte Headers
+      bridgeDuplicateId = msg.getBridgeDuplicateId();
+      scaleDownIds = msg.getScaleDownIds();
+      routeToIds = msg.getRouteToIds();
+
       if (msg instanceof CoreMessage) {
          properties = ((CoreMessage) msg).getTypedProperties();
       }
@@ -594,12 +614,26 @@ public class CoreMessage extends RefCountMessage implements ICoreMessage {
       validatedUserID = SimpleString.readNullableSimpleString(buffer, coreMessageObjectPools == null ? null : coreMessageObjectPools.getValidatedUserIDDecoderPool());
       //DuplicateId should be unique so little value in object pool.
       duplicateId = SimpleString.readNullableSimpleString(buffer);
+
+      //Extra Byte Headers
+      decodeExtraHeaderBytes(buffer);
+
       if (lazyProperties) {
          properties = null;
          propertiesLocation = buffer.readerIndex();
       } else {
          properties = new TypedProperties();
          properties.decode(buffer, coreMessageObjectPools == null ? null : coreMessageObjectPools.getPropertiesDecoderPools());
+      }
+   }
+
+   private void decodeExtraHeaderBytes(ByteBuf buffer) {
+      byte extraHeaderBytes = buffer.readByte();
+      //Extra Byte Headers
+      if (extraHeaderBytes == DataConstants.NOT_NULL) {
+         bridgeDuplicateId = ByteUtil.readNullableBytes(buffer);
+         scaleDownIds = ByteUtil.readNullableBytes(buffer);
+         routeToIds = ByteUtil.readNullableBytes(buffer);
       }
    }
 
@@ -650,7 +684,21 @@ public class CoreMessage extends RefCountMessage implements ICoreMessage {
       SimpleString.writeNullableSimpleString(buffer, lastKeyValueProperty);
       SimpleString.writeNullableSimpleString(buffer, validatedUserID);
       SimpleString.writeNullableSimpleString(buffer, duplicateId);
+      encodeExtraHeaderBytes(buffer);
+
       properties.encode(buffer);
+   }
+
+   private void encodeExtraHeaderBytes(ByteBuf buffer) {
+      //Extra Byte Headers
+      if (bridgeDuplicateId == null && scaleDownIds == null && routeToIds == null) {
+         buffer.writeByte(DataConstants.NULL);
+      } else {
+         buffer.writeByte(DataConstants.NOT_NULL);
+         ByteUtil.writeNullableBytes(buffer, bridgeDuplicateId);
+         ByteUtil.writeNullableBytes(buffer, scaleDownIds);
+         ByteUtil.writeNullableBytes(buffer, routeToIds);
+      }
    }
 
    @Override
@@ -670,7 +718,19 @@ public class CoreMessage extends RefCountMessage implements ICoreMessage {
          SimpleString./* LastKeyValueProperty */sizeofNullableString(lastKeyValueProperty) +
          SimpleString./* ValidatedUserID */sizeofNullableString(validatedUserID) +
          SimpleString./* DuplicateId */sizeofNullableString(duplicateId) +
-             /* PropertySize and Properties */checkProperties().getEncodeSize();
+         /* Extra Header Bytes */ getExtraHeaderBytesEncodeSize() +
+         /* PropertySize and Properties */checkProperties().getEncodeSize();
+   }
+
+   public int getExtraHeaderBytesEncodeSize() {
+      if (bridgeDuplicateId == null && scaleDownIds == null && routeToIds == null) {
+         return DataConstants.SIZE_BYTE;
+      } else {
+         return DataConstants.SIZE_BYTE +
+         ByteUtil./* DuplicateId */sizeofNullableBytes(bridgeDuplicateId) +
+         ByteUtil./* DuplicateId */sizeofNullableBytes(scaleDownIds) +
+         ByteUtil./* DuplicateId */sizeofNullableBytes(routeToIds);
+      }
    }
 
    @Override
@@ -691,6 +751,49 @@ public class CoreMessage extends RefCountMessage implements ICoreMessage {
       this.duplicateId = duplicateId;
       return this;
    }
+
+   @Override
+   public Message setBridgeDuplicateId(byte[] bridgeDuplicateId) {
+      if (validBuffer && !ByteUtil.equals(this.bridgeDuplicateId, bridgeDuplicateId)) {
+         messageChanged();
+      }
+      this.bridgeDuplicateId = bridgeDuplicateId;
+      return this;
+   }
+
+   @Override
+   public byte[] getBridgeDuplicateId() {
+      return bridgeDuplicateId;
+   }
+
+   @Override
+   public Message setRouteToIds(byte[] bridgeDuplicateId) {
+      if (validBuffer && !ByteUtil.equals(this.bridgeDuplicateId, bridgeDuplicateId)) {
+         messageChanged();
+      }
+      this.bridgeDuplicateId = bridgeDuplicateId;
+      return this;
+   }
+
+   @Override
+   public byte[] getRouteToIds() {
+      return bridgeDuplicateId;
+   }
+
+   @Override
+   public Message setScaleDownIds(byte[] scaleDownIds) {
+      if (validBuffer && !ByteUtil.equals(this.scaleDownIds, scaleDownIds)) {
+         messageChanged();
+      }
+      this.scaleDownIds = scaleDownIds;
+      return this;
+   }
+
+   @Override
+   public byte[] getScaleDownIds() {
+      return scaleDownIds;
+   }
+
 
    @Override
    public SimpleString getLastValueProperty() {
@@ -807,9 +910,17 @@ public class CoreMessage extends RefCountMessage implements ICoreMessage {
 
    @Override
    public CoreMessage putBytesProperty(final SimpleString key, final byte[] value) {
-      messageChanged();
-      checkProperties();
-      properties.putBytesProperty(key, value);
+      if (key.equals(Message.HDR_BRIDGE_DUPLICATE_ID)) {
+         setBridgeDuplicateId(value);
+      } else if (key.equals(Message.HDR_SCALEDOWN_TO_IDS)) {
+         setScaleDownIds(value);
+      } else if (key.equals(Message.HDR_ROUTE_TO_IDS)) {
+         setRouteToIds(value);
+      } else {
+         messageChanged();
+         checkProperties();
+         properties.putBytesProperty(key, value);
+      }
       return this;
    }
 
@@ -820,8 +931,16 @@ public class CoreMessage extends RefCountMessage implements ICoreMessage {
 
    @Override
    public byte[] getBytesProperty(final SimpleString key) throws ActiveMQPropertyConversionException {
-      checkProperties();
-      return properties.getBytesProperty(key);
+      if (key.equals(Message.HDR_BRIDGE_DUPLICATE_ID)) {
+         return getBridgeDuplicateId();
+      } else if (key.equals(Message.HDR_SCALEDOWN_TO_IDS)) {
+         return getScaleDownIds();
+      } else if (key.equals(Message.HDR_ROUTE_TO_IDS)) {
+         return getRouteToIds();
+      } else {
+         checkProperties();
+         return properties.getBytesProperty(key);
+      }
    }
 
    @Override
@@ -959,6 +1078,10 @@ public class CoreMessage extends RefCountMessage implements ICoreMessage {
          setValidatedUserID(value);
       } else if (key.equals(Message.HDR_DUPLICATE_DETECTION_ID)) {
          setDuplicateId(value);
+      } else if (key.equals(Message.HDR_BRIDGE_DUPLICATE_ID)) {
+         setBridgeDuplicateId(value.getData());
+      } else if (key.equals(Message.HDR_SCALEDOWN_TO_IDS)) {
+         setScaleDownIds(value.getData());
       } else {
          messageChanged();
          checkProperties();
@@ -981,9 +1104,27 @@ public class CoreMessage extends RefCountMessage implements ICoreMessage {
    @Override
    public CoreMessage putObjectProperty(final SimpleString key,
                                         final Object value) throws ActiveMQPropertyConversionException {
-      messageChanged();
-      checkProperties();
-      TypedProperties.setObjectProperty(key, value, properties);
+      if (key.equals(Message.HDR_SCHEDULED_DELIVERY_TIME)) {
+         setScheduledDeliveryTime((Long) value);
+      } else if (key.equals(Message.HDR_GROUP_ID)) {
+         setGroupID(SimpleString.toSimpleString(value, coreMessageObjectPools == null ? null : coreMessageObjectPools.getGroupIdStringSimpleStringPool()));
+      } else if (key.equals(Message.HDR_LAST_VALUE_NAME)) {
+         setLastValueProperty(SimpleString.toSimpleString(value, coreMessageObjectPools == null ? null : coreMessageObjectPools.getLastKeyValueStringSimpleStringPool()));
+      } else if (key.equals(Message.HDR_VALIDATED_USER)) {
+         setValidatedUserID(SimpleString.toSimpleString(value, coreMessageObjectPools == null ? null : coreMessageObjectPools.getValidatedUserIDStringSimpleStringPool()));
+      } else if (key.equals(Message.HDR_DUPLICATE_DETECTION_ID)) {
+         setDuplicateId(SimpleString.toSimpleString(value));
+      } else if (key.equals(Message.HDR_BRIDGE_DUPLICATE_ID)) {
+         setBridgeDuplicateId((byte[]) value);
+      } else if (key.equals(Message.HDR_SCALEDOWN_TO_IDS)) {
+         setScaleDownIds((byte[]) value);
+      } else if (key.equals(Message.HDR_ROUTE_TO_IDS)) {
+         setRouteToIds((byte[]) value);
+      } else {
+         messageChanged();
+         checkProperties();
+         TypedProperties.setObjectProperty(key, value, properties);
+      }
       return this;
    }
 
@@ -994,8 +1135,26 @@ public class CoreMessage extends RefCountMessage implements ICoreMessage {
 
    @Override
    public Object getObjectProperty(final SimpleString key) {
-      checkProperties();
-      return properties.getProperty(key);
+      if (key.equals(Message.HDR_SCHEDULED_DELIVERY_TIME)) {
+         return getScheduledDeliveryTime();
+      } else if (key.equals(Message.HDR_GROUP_ID)) {
+         return getGroupID();
+      } else if (key.equals(Message.HDR_LAST_VALUE_NAME)) {
+         return getLastValueProperty();
+      } else if (key.equals(Message.HDR_VALIDATED_USER)) {
+         return getValidatedUserIDSimpleString();
+      } else if (key.equals(Message.HDR_DUPLICATE_DETECTION_ID)) {
+         return getDuplicateId();
+      } else if (key.equals(Message.HDR_BRIDGE_DUPLICATE_ID)) {
+         return getBridgeDuplicateId();
+      } else if (key.equals(Message.HDR_SCALEDOWN_TO_IDS)) {
+         return getScaleDownIds();
+      } else if (key.equals(Message.HDR_ROUTE_TO_IDS)) {
+         return getRouteToIds();
+      } else {
+         checkProperties();
+         return properties.getProperty(key);
+      }
    }
 
    @Override
@@ -1064,12 +1223,40 @@ public class CoreMessage extends RefCountMessage implements ICoreMessage {
 
    @Override
    public Object removeProperty(final SimpleString key) {
-      checkProperties();
-      Object oldValue = properties.removeProperty(key);
-      if (oldValue != null) {
-         messageChanged();
+      final Object result;
+      if (key.equals(Message.HDR_SCHEDULED_DELIVERY_TIME)) {
+         result = getScheduledDeliveryTime();
+         setScheduledDeliveryTime(0);
+      } else if (key.equals(Message.HDR_GROUP_ID)) {
+         result = getGroupID();
+         setGroupID(null);
+      } else if (key.equals(Message.HDR_LAST_VALUE_NAME)) {
+         result = getLastValueProperty();
+         setLastValueProperty(null);
+      } else if (key.equals(Message.HDR_VALIDATED_USER)) {
+         result = getValidatedUserIDSimpleString();
+         setValidatedUserID((SimpleString) null);
+      } else if (key.equals(Message.HDR_DUPLICATE_DETECTION_ID)) {
+         result = getDuplicateId();
+         setDuplicateId(null);
+      } else if (key.equals(Message.HDR_BRIDGE_DUPLICATE_ID)) {
+         result = getBridgeDuplicateId();
+         setBridgeDuplicateId(null);
+      } else if (key.equals(Message.HDR_SCALEDOWN_TO_IDS)) {
+         result = getScaleDownIds();
+         setScaleDownIds(null);
+      } else if (key.equals(Message.HDR_ROUTE_TO_IDS)) {
+         result = getRouteToIds();
+         setRouteToIds(null);
+      } else {
+         checkProperties();
+         Object oldValue = properties.removeProperty(key);
+         if (oldValue != null) {
+            messageChanged();
+         }
+         result = oldValue;
       }
-      return oldValue;
+      return result;
    }
 
    @Override

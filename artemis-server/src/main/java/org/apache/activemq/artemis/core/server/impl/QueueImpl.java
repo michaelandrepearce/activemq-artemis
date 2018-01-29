@@ -2447,7 +2447,7 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
          for (long id : queueIDs) {
             buffer.putLong(id);
          }
-         copyMessage.putBytesProperty(Message.HDR_ROUTE_TO_IDS.toString(), buffer.array());
+         copyMessage.setRouteToIds(buffer.array());
       }
 
       postOffice.route(copyMessage, tx, false, rejectDuplicate);

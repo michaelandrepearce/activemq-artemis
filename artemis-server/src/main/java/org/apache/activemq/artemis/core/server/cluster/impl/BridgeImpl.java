@@ -516,7 +516,7 @@ public class BridgeImpl implements Bridge, SessionFailureListener, SendAcknowled
          // We keep our own DuplicateID for the Bridge, so bouncing back and forth will work fine
          byte[] bytes = getDuplicateBytes(nodeUUID, message.getMessageID());
 
-         message.putExtraBytesProperty(Message.HDR_BRIDGE_DUPLICATE_ID, bytes);
+         message.setDuplicateId(new SimpleString(bytes));
       }
 
       if (forwardingAddress != null) {

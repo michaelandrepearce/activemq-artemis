@@ -329,4 +329,55 @@ public class ByteUtil {
       }
       return true;
    }
+
+   public static byte[] readNullableBytes(ByteBuf buffer) {
+      int b = buffer.readByte();
+      if (b == DataConstants.NULL) {
+         return null;
+      }
+      return readBytes(buffer);
+   }
+
+   public static byte[] readBytes(ByteBuf buffer) {
+      int len = buffer.readInt();
+      return readBytes(buffer, len);
+   }
+
+   public static byte[] readBytes(final ByteBuf buffer, final int length) {
+      byte[] data = new byte[length];
+      buffer.readBytes(data);
+      return data;
+   }
+
+   public static void writeNullableBytes(ByteBuf buffer, byte[] data) {
+      if (data == null) {
+         buffer.writeByte(DataConstants.NULL);
+      } else {
+         buffer.writeByte(DataConstants.NOT_NULL);
+         writeBytes(buffer, data);
+      }
+   }
+
+   public static void writeBytes(ByteBuf buffer, byte[] data) {
+      buffer.writeInt(data.length);
+      buffer.writeBytes(data);
+   }
+
+   public static int sizeofBytes(final byte[] data) {
+      return DataConstants.SIZE_INT + data.length;
+   }
+
+   /**
+    * returns the size of a SimpleString which could be null
+    *
+    * @param data the bytes to check
+    * @return the size
+    */
+   public static int sizeofNullableBytes(final byte[] data) {
+      if (data == null) {
+         return 1;
+      } else {
+         return 1 + sizeofBytes(data);
+      }
+   }
 }

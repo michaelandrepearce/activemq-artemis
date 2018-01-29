@@ -489,9 +489,34 @@ public interface Message {
       return null;
    }
 
+   default Message setBridgeDuplicateId(byte[] duplicateId) {
+      return this;
+   }
+
+   default byte[] getBridgeDuplicateId() {
+      return null;
+   }
+
+   default Message setRouteToIds(byte[] duplicateId) {
+      return this;
+   }
+
+   default byte[] getRouteToIds() {
+      return null;
+   }
+
+   default Message setScaleDownIds(byte[] duplicateId) {
+      return this;
+   }
+
+   default byte[] getScaleDownIds() {
+      return null;
+   }
+
    default Message setDuplicateId(SimpleString duplicateId) {
       return this;
    }
+
 
    Message putBooleanProperty(String key, boolean value);
 

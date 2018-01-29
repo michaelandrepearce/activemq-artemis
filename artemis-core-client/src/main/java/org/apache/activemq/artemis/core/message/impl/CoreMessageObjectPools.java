@@ -32,6 +32,7 @@ public class CoreMessageObjectPools {
    private Supplier<SimpleString.StringSimpleStringPool> groupIdStringSimpleStringPool = Suppliers.memoize(SimpleString.StringSimpleStringPool::new);
    private Supplier<SimpleString.StringSimpleStringPool> addressStringSimpleStringPool = Suppliers.memoize(SimpleString.StringSimpleStringPool::new);
    private Supplier<SimpleString.StringSimpleStringPool> validatedUserIDStringSimpleStringPool = Suppliers.memoize(SimpleString.StringSimpleStringPool::new);
+   private Supplier<SimpleString.StringSimpleStringPool> lastKeyValueStringSimpleStringPool = Suppliers.memoize(SimpleString.StringSimpleStringPool::new);
    private Supplier<TypedProperties.TypedPropertiesStringSimpleStringPools> propertiesStringSimpleStringPools = Suppliers.memoize(TypedProperties.TypedPropertiesStringSimpleStringPools::new);
 
    public CoreMessageObjectPools() {
@@ -64,6 +65,10 @@ public class CoreMessageObjectPools {
 
    public SimpleString.StringSimpleStringPool getValidatedUserIDStringSimpleStringPool() {
       return validatedUserIDStringSimpleStringPool.get();
+   }
+
+   public SimpleString.StringSimpleStringPool getLastKeyValueStringSimpleStringPool() {
+      return lastKeyValueStringSimpleStringPool.get();
    }
 
    public TypedProperties.TypedPropertiesDecoderPools getPropertiesDecoderPools() {
