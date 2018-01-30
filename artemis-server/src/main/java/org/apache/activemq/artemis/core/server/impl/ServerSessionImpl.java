@@ -551,7 +551,7 @@ public class ServerSessionImpl implements ServerSession, FailureListener {
    @Override
    public Queue createQueue(AddressInfo addressInfo, SimpleString name, SimpleString filterString, boolean temporary, boolean durable) throws Exception {
       AddressSettings as = server.getAddressSettingsRepository().getMatch(addressInfo.getName().toString());
-      return createQueue(addressInfo, name, filterString, temporary, durable, as.getDefaultMaxConsumers(), as.isDefaultPurgeOnNoConsumers(), false);
+      return createQueue(addressInfo, name, filterString, temporary, durable, as.getDefaultMaxConsumers(), as.isDefaultPurgeOnNoConsumers(), as.isDefaultExclusiveQueue(), as.isDefaultLastValueQueue(), false);
    }
 
    public Queue createQueue(final AddressInfo addressInfo,
@@ -561,6 +561,8 @@ public class ServerSessionImpl implements ServerSession, FailureListener {
                             final boolean durable,
                             final int maxConsumers,
                             final boolean purgeOnNoConsumers,
+                            final boolean exclusive,
+                            final boolean lastValue,
                             final boolean autoCreated) throws Exception {
       final SimpleString unPrefixedName = removePrefix(name);
 
@@ -575,7 +577,7 @@ public class ServerSessionImpl implements ServerSession, FailureListener {
 
       server.checkQueueCreationLimit(getUsername());
 
-      Queue queue = server.createQueue(art, unPrefixedName, filterString, SimpleString.toSimpleString(getUsername()), durable, temporary, autoCreated, maxConsumers, purgeOnNoConsumers, server.getAddressSettingsRepository().getMatch(art.getName().toString()).isAutoCreateAddresses());
+      Queue queue = server.createQueue(art, unPrefixedName, filterString, SimpleString.toSimpleString(getUsername()), durable, temporary, autoCreated, maxConsumers, purgeOnNoConsumers, exclusive, lastValue, server.getAddressSettingsRepository().getMatch(art.getName().toString()).isAutoCreateAddresses());
 
       if (temporary) {
          // Temporary queue in core simply means the queue will be deleted if
@@ -614,7 +616,30 @@ public class ServerSessionImpl implements ServerSession, FailureListener {
                             final int maxConsumers,
                             final boolean purgeOnNoConsumers,
                             final boolean autoCreated) throws Exception {
-      return createQueue(new AddressInfo(address, routingType), name, filterString, temporary, durable, maxConsumers, purgeOnNoConsumers, autoCreated);
+      AddressSettings as = server.getAddressSettingsRepository().getMatch(address.toString());
+      return createQueue(new AddressInfo(address, routingType), name, filterString, temporary, durable, maxConsumers, purgeOnNoConsumers, as.isDefaultExclusiveQueue(), as.isDefaultLastValueQueue(), autoCreated);
+   }
+
+   @Override
+   public Queue createQueue(final SimpleString address,
+                            final SimpleString name,
+                            final RoutingType routingType,
+                            final SimpleString filterString,
+                            final boolean temporary,
+                            final boolean durable,
+                            final int maxConsumers,
+                            final boolean purgeOnNoConsumers,
+                            final Boolean exclusive,
+                            final Boolean lastValue,
+                            final boolean autoCreated) throws Exception {
+      if (exclusive == null || lastValue == null) {
+         AddressSettings as = server.getAddressSettingsRepository().getMatch(address.toString());
+         return createQueue(new AddressInfo(address, routingType), name, filterString, temporary, durable, maxConsumers, purgeOnNoConsumers,
+                            exclusive == null ? as.isDefaultExclusiveQueue() : exclusive, lastValue == null ? as.isDefaultLastValueQueue() : lastValue, autoCreated);
+      } else {
+         return createQueue(new AddressInfo(address, routingType), name, filterString, temporary, durable, maxConsumers, purgeOnNoConsumers,
+                            exclusive, lastValue, autoCreated);
+      }
    }
 
    @Override
@@ -632,7 +657,14 @@ public class ServerSessionImpl implements ServerSession, FailureListener {
    @Override
    public Queue createQueue(AddressInfo addressInfo, SimpleString name, SimpleString filterString, boolean temporary, boolean durable, boolean autoCreated) throws Exception {
       AddressSettings as = server.getAddressSettingsRepository().getMatch(addressInfo.getName().toString());
-      return createQueue(addressInfo, name, filterString, temporary, durable, as.getDefaultMaxConsumers(), as.isDefaultPurgeOnNoConsumers(), autoCreated);
+      return createQueue(addressInfo, name, filterString, temporary, durable, as.getDefaultMaxConsumers(), as.isDefaultPurgeOnNoConsumers(), as.isDefaultExclusiveQueue(), as.isDefaultLastValueQueue(), autoCreated);
+   }
+
+   @Override
+   public Queue createQueue(AddressInfo addressInfo, SimpleString name, SimpleString filterString, boolean temporary, boolean durable, Boolean exclusive, Boolean lastValue, boolean autoCreated) throws Exception {
+      AddressSettings as = server.getAddressSettingsRepository().getMatch(addressInfo.getName().toString());
+      return createQueue(addressInfo, name, filterString, temporary, durable, as.getDefaultMaxConsumers(), as.isDefaultPurgeOnNoConsumers(),
+                         exclusive == null ? as.isDefaultExclusiveQueue() : exclusive, lastValue == null ? as.isDefaultLastValueQueue() : lastValue, autoCreated);
    }
 
    @Override
@@ -662,18 +694,37 @@ public class ServerSessionImpl implements ServerSession, FailureListener {
 
    @Override
    public void createSharedQueue(SimpleString address,
+                                 SimpleString name,
+                                 RoutingType routingType,
+                                 SimpleString filterString,
+                                 boolean durable,
+                                 Integer maxConsumers,
+                                 Boolean purgeOnNoConsumers,
+                                 Boolean exclusive,
+                                 Boolean lastValue) throws Exception {
+      address = removePrefix(address);
+
+      securityCheck(address, name, durable ? CheckType.CREATE_DURABLE_QUEUE : CheckType.CREATE_NON_DURABLE_QUEUE, this);
+
+      server.checkQueueCreationLimit(getUsername());
+
+      AddressSettings as = server.getAddressSettingsRepository().getMatch(address.toString());
+
+      server.createSharedQueue(address, routingType, name, filterString, SimpleString.toSimpleString(getUsername()), durable,
+                               maxConsumers == null ? as.getDefaultMaxConsumers() : maxConsumers,
+                               purgeOnNoConsumers == null ? as.isDefaultPurgeOnNoConsumers() : purgeOnNoConsumers,
+                               exclusive == null ? as.isDefaultExclusiveQueue() : exclusive,
+                               lastValue == null ? as.isDefaultLastValueQueue() : lastValue);
+   }
+
+   @Override
+   public void createSharedQueue(SimpleString address,
                                  final SimpleString name,
                                  final RoutingType routingType,
                                  boolean durable,
                                  final SimpleString filterString) throws Exception {
 
-      address = removePrefix(address);
-
-      securityCheck(address, name, CheckType.CREATE_NON_DURABLE_QUEUE, this);
-
-      server.checkQueueCreationLimit(getUsername());
-
-      server.createSharedQueue(address, routingType, name, filterString, SimpleString.toSimpleString(getUsername()), durable);
+      createSharedQueue(address, name, routingType, filterString, durable, null, null, null, null);
    }
 
    @Override
