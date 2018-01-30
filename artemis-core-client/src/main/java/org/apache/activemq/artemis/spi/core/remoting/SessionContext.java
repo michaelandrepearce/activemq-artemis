@@ -199,6 +199,7 @@ public abstract class SessionContext {
                                     boolean temp,
                                     boolean autoCreated) throws ActiveMQException;
 
+   @Deprecated
    public abstract void createQueue(SimpleString address,
                                     RoutingType routingType,
                                     SimpleString queueName,
@@ -208,6 +209,18 @@ public abstract class SessionContext {
                                     int maxConsumers,
                                     boolean purgeOnNoConsumers,
                                     boolean autoCreated) throws ActiveMQException;
+
+   public abstract void createQueue(SimpleString address,
+                                    RoutingType routingType,
+                                    SimpleString queueName,
+                                    SimpleString filterString,
+                                    boolean durable,
+                                    boolean temp,
+                                    int maxConsumers,
+                                    boolean purgeOnNoConsumers,
+                                    boolean autoCreated,
+                                    Boolean exclusive,
+                                    Boolean lastVale) throws ActiveMQException;
 
    public abstract ClientSession.QueueQuery queueQuery(SimpleString queueName) throws ActiveMQException;
 

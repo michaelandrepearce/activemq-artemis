@@ -376,7 +376,7 @@ public final class ClientSessionImpl implements ClientSessionInternal, FailureLi
                           false,
                           ActiveMQDefaultConfiguration.getDefaultMaxQueueConsumers(),
                           ActiveMQDefaultConfiguration.getDefaultPurgeOnNoConsumers(),
-                          autoCreated);
+                          autoCreated, null, null);
    }
 
    @Override
@@ -400,12 +400,42 @@ public final class ClientSessionImpl implements ClientSessionInternal, FailureLi
                           false,
                           maxConsumers,
                           purgeOnNoConsumers,
-                          autoCreated);
+                          autoCreated, null, null);
+   }
+
+   @Override
+   public void createQueue(final SimpleString address, final RoutingType routingType, final SimpleString queueName, final SimpleString filterString,
+                           final boolean durable, final boolean autoCreated, final int maxConsumers, final boolean purgeOnNoConsumers, final Boolean exclusive, final Boolean lastValue) throws ActiveMQException {
+      internalCreateQueue(address,
+                          queueName, routingType,
+                          filterString,
+                          durable,
+                          false,
+                          maxConsumers,
+                          purgeOnNoConsumers,
+                          autoCreated,
+                          exclusive,
+                          lastValue);
    }
 
    @Override
    public void createQueue(final String address, final RoutingType routingType, final String queueName, final String filterString,
                            final boolean durable, final boolean autoCreated, final int maxConsumers, final boolean purgeOnNoConsumers) throws ActiveMQException {
+      createQueue(address,
+                  routingType,
+                  queueName,
+                  filterString,
+                  durable,
+                  autoCreated,
+                  maxConsumers,
+                  purgeOnNoConsumers,
+                  null,
+                  null);
+   }
+
+   @Override
+   public void createQueue(final String address, final RoutingType routingType, final String queueName, final String filterString,
+                           final boolean durable, final boolean autoCreated, final int maxConsumers, final boolean purgeOnNoConsumers, Boolean exclusive, Boolean lastValue) throws ActiveMQException {
       createQueue(SimpleString.toSimpleString(address),
                   routingType,
                   SimpleString.toSimpleString(queueName),
@@ -413,7 +443,9 @@ public final class ClientSessionImpl implements ClientSessionInternal, FailureLi
                   durable,
                   autoCreated,
                   maxConsumers,
-                  purgeOnNoConsumers);
+                  purgeOnNoConsumers,
+                  exclusive,
+                  lastValue);
    }
 
    @Override
@@ -440,7 +472,7 @@ public final class ClientSessionImpl implements ClientSessionInternal, FailureLi
                           true,
                           ActiveMQDefaultConfiguration.getDefaultMaxQueueConsumers(),
                           ActiveMQDefaultConfiguration.getDefaultPurgeOnNoConsumers(),
-                          false);
+                          false, null, null);
    }
 
    @Override
@@ -466,7 +498,7 @@ public final class ClientSessionImpl implements ClientSessionInternal, FailureLi
                           false,
                           ActiveMQDefaultConfiguration.getDefaultMaxQueueConsumers(),
                           ActiveMQDefaultConfiguration.getDefaultPurgeOnNoConsumers(),
-                          false);
+                          false, null, null);
    }
 
    /**
@@ -541,7 +573,7 @@ public final class ClientSessionImpl implements ClientSessionInternal, FailureLi
                           false,
                           ActiveMQDefaultConfiguration.getDefaultMaxQueueConsumers(),
                           ActiveMQDefaultConfiguration.getDefaultPurgeOnNoConsumers(),
-                          false);
+                          false, null, null);
    }
 
    /**
@@ -562,7 +594,7 @@ public final class ClientSessionImpl implements ClientSessionInternal, FailureLi
                           false,
                           ActiveMQDefaultConfiguration.getDefaultMaxQueueConsumers(),
                           ActiveMQDefaultConfiguration.getDefaultPurgeOnNoConsumers(),
-                          false);
+                          false, null, null);
    }
 
    /**
@@ -586,7 +618,7 @@ public final class ClientSessionImpl implements ClientSessionInternal, FailureLi
                           false,
                           ActiveMQDefaultConfiguration.getDefaultMaxQueueConsumers(),
                           ActiveMQDefaultConfiguration.getDefaultPurgeOnNoConsumers(),
-                          false);
+                          false, null, null);
    }
 
    /**
@@ -1847,7 +1879,9 @@ public final class ClientSessionImpl implements ClientSessionInternal, FailureLi
                                     final boolean temp,
                                     final int maxConsumers,
                                     final boolean purgeOnNoConsumers,
-                                    final boolean autoCreated) throws ActiveMQException {
+                                    final boolean autoCreated,
+                                    final Boolean exclusive,
+                                    final Boolean lastValue) throws ActiveMQException {
       checkClosed();
 
       if (durable && temp) {
@@ -1864,7 +1898,9 @@ public final class ClientSessionImpl implements ClientSessionInternal, FailureLi
                                     temp,
                                     maxConsumers,
                                     purgeOnNoConsumers,
-                                    autoCreated);
+                                    autoCreated,
+                                    exclusive,
+                                    lastValue);
       } finally {
          endCall();
       }

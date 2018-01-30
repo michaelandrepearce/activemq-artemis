@@ -52,6 +52,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.activemq.artemis.api.core.ActiveMQException;
 import org.apache.activemq.artemis.api.core.ActiveMQQueueExistsException;
+import org.apache.activemq.artemis.api.core.QueueParameters;
 import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.api.core.client.ClientConsumer;
 import org.apache.activemq.artemis.api.core.client.ClientProducer;
@@ -318,7 +319,7 @@ public class ActiveMQSession implements QueueSession, TopicSession {
                   if (jbd.isQueue() && response.isAutoCreateQueues()) {
                      // perhaps just relying on the broker to do it is simplest (i.e. purgeOnNoConsumers)
                      session.createAddress(jbd.getSimpleAddress(), RoutingType.ANYCAST, true);
-                     session.createQueue(jbd.getSimpleAddress(), RoutingType.ANYCAST, jbd.getSimpleAddress(), null, true, true, response.getDefaultMaxConsumers(), response.isDefaultPurgeOnNoConsumers());
+                     createQueue(jbd, RoutingType.ANYCAST, jbd.getSimpleAddress(), null, true, true, response.getDefaultMaxConsumers(), response.isDefaultPurgeOnNoConsumers(), response.isDefaultExclusive(), response.isDefaultLastValueQueue());
                   } else if (!jbd.isQueue() && response.isAutoCreateAddresses()) {
                      session.createAddress(jbd.getSimpleAddress(), RoutingType.MULTICAST, true);
                   } else {
@@ -699,7 +700,7 @@ public class ActiveMQSession implements QueueSession, TopicSession {
             if (!response.isExists() || !response.getQueueNames().contains(dest.getSimpleAddress())) {
                if (response.isAutoCreateQueues()) {
                   try {
-                     session.createQueue(dest.getSimpleAddress(), RoutingType.ANYCAST, dest.getSimpleAddress(), null, true, true, response.getDefaultMaxConsumers(), response.isDefaultPurgeOnNoConsumers());
+                     createQueue(dest, RoutingType.ANYCAST, dest.getSimpleAddress(), null, true, true, response.getDefaultMaxConsumers(), response.isDefaultPurgeOnNoConsumers(), response.isDefaultExclusive(), response.isDefaultLastValueQueue());
                   } catch (ActiveMQQueueExistsException e) {
                      // The queue was created by another client/admin between the query check and send create queue packet
                   }
@@ -756,7 +757,7 @@ public class ActiveMQSession implements QueueSession, TopicSession {
 
                if (!subResponse.isExists()) {
                   // durable subscription queues are not technically considered to be auto-created
-                  session.createQueue(dest.getSimpleAddress(), RoutingType.MULTICAST, queueName, coreFilterString, true, false, response.getDefaultMaxConsumers(), response.isDefaultPurgeOnNoConsumers());
+                  createQueue(dest, RoutingType.MULTICAST, queueName, coreFilterString, true, false, response.getDefaultMaxConsumers(), response.isDefaultPurgeOnNoConsumers(), response.isDefaultExclusive(), response.isDefaultLastValueQueue());
                } else {
                   // Already exists
                   if (subResponse.getConsumerCount() > 0) {
@@ -787,7 +788,7 @@ public class ActiveMQSession implements QueueSession, TopicSession {
                      session.deleteQueue(queueName);
 
                      // Create the new one
-                     session.createQueue(dest.getSimpleAddress(), RoutingType.MULTICAST, queueName, coreFilterString, true, false, response.getDefaultMaxConsumers(), response.isDefaultPurgeOnNoConsumers());
+                     createQueue(dest, RoutingType.MULTICAST, queueName, coreFilterString, true, false, response.getDefaultMaxConsumers(), response.isDefaultPurgeOnNoConsumers(), response.isDefaultExclusive(), response.isDefaultLastValueQueue());
                   }
                }
 
@@ -849,7 +850,7 @@ public class ActiveMQSession implements QueueSession, TopicSession {
          AddressQuery response = session.addressQuery(new SimpleString(activeMQDestination.getAddress()));
          if (!response.isExists()) {
             if (response.isAutoCreateQueues()) {
-               session.createQueue(activeMQDestination.getSimpleAddress(), RoutingType.ANYCAST, activeMQDestination.getSimpleAddress(), null, true, true, response.getDefaultMaxConsumers(), response.isDefaultPurgeOnNoConsumers());
+               createQueue(activeMQDestination, RoutingType.ANYCAST, activeMQDestination.getSimpleAddress(), null, true, true, response.getDefaultMaxConsumers(), response.isDefaultPurgeOnNoConsumers(), response.isDefaultExclusive(), response.isDefaultLastValueQueue());
             } else {
                throw new InvalidDestinationException("Destination " + activeMQDestination.getName() + " does not exist");
             }
@@ -1151,6 +1152,26 @@ public class ActiveMQSession implements QueueSession, TopicSession {
          return null;
       } else {
          return topic;
+      }
+   }
+
+   private void createQueue(ActiveMQDestination destination, RoutingType routingType, SimpleString queueName, SimpleString filter, boolean durable, boolean autoCreated, int maxConsumers, boolean purgeOnNoConsumers, Boolean exclusive, Boolean lastValue) throws ActiveMQException {
+      QueueParameters queueParameters = destination.getQueueParameters();
+      if (queueParameters == null) {
+         session.createQueue(destination.getSimpleAddress(), routingType, queueName, filter, durable, autoCreated, maxConsumers, purgeOnNoConsumers, exclusive, lastValue);
+      } else {
+         session.createQueue(
+            destination.getSimpleAddress(),
+            queueParameters.getRoutingType() == null ? routingType : queueParameters.getRoutingType(),
+            queueName,
+            filter,
+            queueParameters.getDurable() == null ? durable : queueParameters.getDurable(),
+            autoCreated,
+            queueParameters.getMaxConsumers() == null ? maxConsumers : queueParameters.getMaxConsumers(),
+            queueParameters.getPurgeOnNoConsumers() == null ? purgeOnNoConsumers : queueParameters.getPurgeOnNoConsumers(),
+            queueParameters.getExclusive() == null ? exclusive : queueParameters.getExclusive(),
+            queueParameters.getLastValue() == null ? lastValue : queueParameters.getLastValue()
+         );
       }
    }
 
