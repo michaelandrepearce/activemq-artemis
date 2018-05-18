@@ -630,16 +630,20 @@ public class ActiveMQSession implements QueueSession, TopicSession {
 
          queueName = ActiveMQDestination.createQueueNameForSubscription(durability == ConsumerDurability.DURABLE, connection.getClientID(), subscriptionName);
 
-         try {
-            if (durability == ConsumerDurability.DURABLE) {
-               createSharedQueue(dest, RoutingType.MULTICAST, queueName, coreFilterString, true, response.getDefaultMaxConsumers(), response.isDefaultPurgeOnNoConsumers(), response.isDefaultExclusive(), response.isDefaultLastValueQueue());
-            } else {
-               createSharedQueue(dest, RoutingType.MULTICAST, queueName, coreFilterString, false, response.getDefaultMaxConsumers(), response.isDefaultPurgeOnNoConsumers(), response.isDefaultExclusive(), response.isDefaultLastValueQueue());
+         QueueQuery subResponse = session.queueQuery(queueName);
+
+         if (!subResponse.isExists()) {
+            try {
+               if (durability == ConsumerDurability.DURABLE) {
+                  createSharedQueue(dest, RoutingType.MULTICAST, queueName, coreFilterString, true, response.getDefaultMaxConsumers(), response.isDefaultPurgeOnNoConsumers(), response.isDefaultExclusive(), response.isDefaultLastValueQueue());
+               } else {
+                  createSharedQueue(dest, RoutingType.MULTICAST, queueName, coreFilterString, false, response.getDefaultMaxConsumers(), response.isDefaultPurgeOnNoConsumers(), response.isDefaultExclusive(), response.isDefaultLastValueQueue());
+               }
+            } catch (ActiveMQQueueExistsException ignored) {
+               // We ignore this because querying and then creating the queue wouldn't be idempotent
+               // we could also add a parameter to ignore existence what would require a bigger work around to avoid
+               // compatibility.
             }
-         } catch (ActiveMQQueueExistsException ignored) {
-            // We ignore this because querying and then creating the queue wouldn't be idempotent
-            // we could also add a parameter to ignore existence what would require a bigger work around to avoid
-            // compatibility.
          }
 
          consumer = session.createConsumer(queueName, null, false);

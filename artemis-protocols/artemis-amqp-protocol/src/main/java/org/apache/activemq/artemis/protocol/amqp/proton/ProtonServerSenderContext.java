@@ -370,10 +370,9 @@ public class ProtonServerSenderContext extends ProtonInitializable implements Pr
                isVolatile = true;
                if (shared && sender.getName() != null) {
                   queue = createQueueName(connection.isUseCoreSubscriptionNaming(), getClientId(), sender.getName(), shared, global, isVolatile);
-                  try {
+                  QueueQueryResult result = sessionSPI.queueQuery(queue, routingTypeToUse, false);
+                  if (!result.isExists()) {
                      sessionSPI.createSharedVolatileQueue(addressToUse, RoutingType.MULTICAST, queue, simpleStringSelector);
-                  } catch (ActiveMQQueueExistsException e) {
-                     //this is ok, just means its shared
                   }
                } else {
                   queue = SimpleString.toSimpleString(java.util.UUID.randomUUID().toString());

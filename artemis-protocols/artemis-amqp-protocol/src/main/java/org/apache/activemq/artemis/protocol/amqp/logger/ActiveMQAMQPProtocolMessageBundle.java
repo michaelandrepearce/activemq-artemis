@@ -87,4 +87,10 @@ public interface ActiveMQAMQPProtocolMessageBundle {
    @Message(id = 219017, value = "not authorized to create producer, {0}", format = Message.Format.MESSAGE_FORMAT)
    ActiveMQAMQPSecurityException securityErrorCreatingProducer(String message);
 
+   @Message(id = 219018, value = "error queue does not match existing queue routing type, {0}", format = Message.Format.MESSAGE_FORMAT)
+   ActiveMQAMQPInternalErrorException errorQueueDoesNotMatchRoutingType(String queue);
+
+   @Message(id = 219019, value = "error queue does not match existing queue selector, {0}", format = Message.Format.MESSAGE_FORMAT)
+   ActiveMQAMQPInternalErrorException errorQueueDoesNotMatchSelector(String queue);
+
 }

@@ -362,7 +362,14 @@ public class ServerSessionPacketHandler implements ChannelHandler {
                case CREATE_SHARED_QUEUE: {
                   CreateSharedQueueMessage request = (CreateSharedQueueMessage) packet;
                   requiresResponse = request.isRequiresResponse();
-                  session.createSharedQueue(request.getAddress(), request.getQueueName(), request.isDurable(), request.getFilterString());
+                  if (remotingConnection.getChannelVersion() < PacketImpl.SHARED_QUEUE_SECURITY_FIX_CHANGE_VERSION) {
+                     QueueQueryResult result = session.executeQueueQuery(request.getQueueName());
+                     if (!result.isExists()) {
+                        session.createSharedQueue(request.getAddress(), request.getQueueName(), request.isDurable(), request.getFilterString());
+                     }
+                  } else {
+                     session.createSharedQueue(request.getAddress(), request.getQueueName(), request.isDurable(), request.getFilterString());
+                  }
                   if (requiresResponse) {
                      response = new NullResponseMessage();
                   }
@@ -371,7 +378,14 @@ public class ServerSessionPacketHandler implements ChannelHandler {
                case CREATE_SHARED_QUEUE_V2: {
                   CreateSharedQueueMessage_V2 request = (CreateSharedQueueMessage_V2) packet;
                   requiresResponse = request.isRequiresResponse();
-                  session.createSharedQueue(request.getAddress(), request.getQueueName(), request.getRoutingType(), request.getFilterString(), request.isDurable(), request.getMaxConsumers(), request.isPurgeOnNoConsumers(), request.isExclusive(), request.isLastValue());
+                  if (remotingConnection.getChannelVersion() < PacketImpl.SHARED_QUEUE_SECURITY_FIX_CHANGE_VERSION) {
+                     QueueQueryResult result = session.executeQueueQuery(request.getQueueName());
+                     if (!result.isExists()) {
+                        session.createSharedQueue(request.getAddress(), request.getQueueName(), request.getRoutingType(), request.getFilterString(), request.isDurable(), request.getMaxConsumers(), request.isPurgeOnNoConsumers(), request.isExclusive(), request.isLastValue());
+                     }
+                  } else {
+                     session.createSharedQueue(request.getAddress(), request.getQueueName(), request.getRoutingType(), request.getFilterString(), request.isDurable(), request.getMaxConsumers(), request.isPurgeOnNoConsumers(), request.isExclusive(), request.isLastValue());
+                  }
                   if (requiresResponse) {
                      response = new NullResponseMessage();
                   }

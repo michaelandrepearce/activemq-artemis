@@ -150,6 +150,10 @@ public final class SimpleString implements CharSequence, Serializable, Comparabl
       return subSeq(start, end);
    }
 
+   public static boolean compare(SimpleString str1, SimpleString str2) {
+      return (str1 == null ? str2 == null : str1.equals(str2));
+   }
+
    public static SimpleString readNullableSimpleString(ByteBuf buffer) {
       int b = buffer.readByte();
       if (b == DataConstants.NULL) {
