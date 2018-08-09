@@ -752,6 +752,9 @@ public final class ChannelImpl implements Channel {
          if (commandConfirmationHandler != null) {
             commandConfirmationHandler.commandConfirmed(packet);
          }
+         if (responseAsyncCache != null) {
+            responseAsyncCache.handleResponse(packet);
+         }
       }
 
       firstStoredCommandID += numberToClear;
