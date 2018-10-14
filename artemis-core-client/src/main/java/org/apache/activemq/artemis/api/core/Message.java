@@ -186,10 +186,12 @@ public interface Message {
       return this;
    }
 
+   @Deprecated
    default SimpleString getLastValueProperty() {
       return null;
    }
 
+   @Deprecated
    default Message setLastValueProperty(SimpleString lastValueName) {
       return this;
    }
