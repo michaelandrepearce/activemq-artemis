@@ -119,4 +119,35 @@ public interface MessageReference {
     * @throws ActiveMQException
     */
    long getPersistentSize() throws ActiveMQException;
+
+   /**
+    * To be used by single ref processing, avoids call to System.currentTimeMillis if expiration is 0.
+    *
+    * @return if expired.
+    */
+   default boolean isExpired() {
+      return Message.isExpired(getExpiration());
+   }
+
+   /**
+    * To be used batch ref (e.g. expiry thread) processing expired messages, to avoid repeated calls to System.currentTimeMillis for perf.
+    *
+    * @param currentTimeMillis time to compare against
+    * @return if expired.
+    */
+   default boolean isExpired(long currentTimeMillis) {
+      return Message.isExpired(currentTimeMillis, getExpiration());
+   }
+
+   /**
+    * The expiration of this message reference.
+    * Its expiration is not always the underlying message expiration,
+    * as the queues min or max expiration delays this message is relevant to may override.
+    *
+    * Message Reference implementations should try cache the calculated expiration
+    * and return that where possible for performance, instead of recalculating it evey check.
+    *
+    * @return
+    */
+   long getExpiration();
 }

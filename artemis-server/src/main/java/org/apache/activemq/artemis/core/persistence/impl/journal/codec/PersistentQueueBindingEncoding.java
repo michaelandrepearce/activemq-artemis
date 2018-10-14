@@ -58,6 +58,10 @@ public class PersistentQueueBindingEncoding implements EncodingSupport, QueueBin
 
    public long delayBeforeDispatch;
 
+   public Long minExpiryDelay;
+
+   public Long maxExpiryDelay;
+
    public byte routingType;
 
    public boolean configurationManaged;
@@ -94,6 +98,10 @@ public class PersistentQueueBindingEncoding implements EncodingSupport, QueueBin
          consumersBeforeDispatch +
          ", delayBeforeDispatch=" +
          delayBeforeDispatch +
+         ", minExpiryDelay=" +
+         minExpiryDelay +
+         ", maxExpiryDelay=" +
+         maxExpiryDelay +
          ", routingType=" +
          routingType +
          ", configurationManaged=" +
@@ -114,6 +122,8 @@ public class PersistentQueueBindingEncoding implements EncodingSupport, QueueBin
                                          final boolean nonDestructive,
                                          final int consumersBeforeDispatch,
                                          final long delayBeforeDispatch,
+                                         final Long minExpiryDelay,
+                                         final Long maxExpiryDelay,
                                          final byte routingType,
                                          final boolean configurationManaged) {
       this.name = name;
@@ -129,6 +139,8 @@ public class PersistentQueueBindingEncoding implements EncodingSupport, QueueBin
       this.nonDestructive = nonDestructive;
       this.consumersBeforeDispatch = consumersBeforeDispatch;
       this.delayBeforeDispatch = delayBeforeDispatch;
+      this.minExpiryDelay = minExpiryDelay;
+      this.maxExpiryDelay = maxExpiryDelay;
       this.routingType = routingType;
       this.configurationManaged = configurationManaged;
    }
@@ -274,6 +286,27 @@ public class PersistentQueueBindingEncoding implements EncodingSupport, QueueBin
    public void setDelayBeforeDispatch(long delayBeforeDispatch) {
       this.delayBeforeDispatch = delayBeforeDispatch;
    }
+
+   @Override
+   public Long getMinExpiryDelay() {
+      return minExpiryDelay;
+   }
+
+   @Override
+   public void setMinExpiryDelay(Long minExpiryDelay) {
+      this.minExpiryDelay = minExpiryDelay;
+   }
+
+   @Override
+   public Long getMaxExpiryDelay() {
+      return maxExpiryDelay;
+   }
+
+   @Override
+   public void setMaxExpiryDelay(Long maxExpiryDelay) {
+      this.maxExpiryDelay = maxExpiryDelay;
+   }
+
 
    @Override
    public byte getRoutingType() {

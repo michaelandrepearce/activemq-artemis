@@ -110,7 +110,17 @@ public interface Queue extends Bindable,CriticalComponent {
 
    int getConsumerCount();
 
-    /**
+   long getMinExpiryDelay();
+
+   void setMinExpiryDelay(long minExpiryDelay);
+
+   long getMaxExpiryDelay();
+
+   void setMaxExpiryDelay(long maxExpiryDelay);
+
+   long getExpiration(MessageReference ref);
+
+   /**
     * This will set a reference counter for every consumer present on the queue.
     * The ReferenceCounter will know what to do when the counter became zeroed.
     * This is used to control what to do with temporary queues, especially

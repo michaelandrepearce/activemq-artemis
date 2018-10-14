@@ -84,6 +84,8 @@ public class AddressSettings implements Mergeable<AddressSettings>, Serializable
 
    public static final long DEFAULT_EXPIRY_DELAY = -1;
 
+   public static final long DEFAULT_MAX_EXPIRY_DELAY = -1;
+
    public static final boolean DEFAULT_SEND_TO_DLA_ON_NO_ROUTE = false;
 
    public static final long DEFAULT_SLOW_CONSUMER_THRESHOLD = -1;
@@ -123,7 +125,9 @@ public class AddressSettings implements Mergeable<AddressSettings>, Serializable
 
    private SimpleString expiryAddress = null;
 
-   private Long expiryDelay = AddressSettings.DEFAULT_EXPIRY_DELAY;
+   private Long expiryDelay = null;
+
+   private Long minExpiryDelay = null;
 
    private Boolean defaultLastValueQueue = null;
 
@@ -527,11 +531,20 @@ public class AddressSettings implements Mergeable<AddressSettings>, Serializable
    }
 
    public Long getExpiryDelay() {
-      return expiryDelay;
+      return expiryDelay != null ? expiryDelay : ActiveMQDefaultConfiguration.getDefaultMaxExpiryDelay();
    }
 
    public AddressSettings setExpiryDelay(final Long expiryDelay) {
       this.expiryDelay = expiryDelay;
+      return this;
+   }
+
+   public Long getMinExpiryDelay() {
+      return minExpiryDelay != null ? minExpiryDelay : ActiveMQDefaultConfiguration.getDefaultMinExpiryDelay();
+   }
+
+   public AddressSettings setMinExpiryDelay(final Long maxExpiryDelay) {
+      this.minExpiryDelay = minExpiryDelay;
       return this;
    }
 
@@ -664,6 +677,9 @@ public class AddressSettings implements Mergeable<AddressSettings>, Serializable
       }
       if (expiryDelay == null) {
          expiryDelay = merged.expiryDelay;
+      }
+      if (minExpiryDelay == null) {
+         minExpiryDelay = merged.minExpiryDelay;
       }
       if (redistributionDelay == null) {
          redistributionDelay = merged.redistributionDelay;
@@ -886,6 +902,10 @@ public class AddressSettings implements Mergeable<AddressSettings>, Serializable
       if (buffer.readableBytes() > 0) {
          defaultNonDestructive = BufferHelper.readNullableBoolean(buffer);
       }
+
+      if (buffer.readableBytes() > 0) {
+         minExpiryDelay = BufferHelper.readNullableLong(buffer);
+      }
    }
 
    @Override
@@ -929,7 +949,8 @@ public class AddressSettings implements Mergeable<AddressSettings>, Serializable
          BufferHelper.sizeOfNullableLong(defaultDelayBeforeDispatch) +
          BufferHelper.sizeOfNullableInteger(defaultConsumerWindowSize) +
          SimpleString.sizeofNullableString(defaultLastValueKey) +
-         BufferHelper.sizeOfNullableBoolean(defaultNonDestructive);
+         BufferHelper.sizeOfNullableBoolean(defaultNonDestructive) +
+         BufferHelper.sizeOfNullableLong(minExpiryDelay);
    }
 
    @Override
@@ -1016,6 +1037,8 @@ public class AddressSettings implements Mergeable<AddressSettings>, Serializable
 
       BufferHelper.writeNullableBoolean(buffer, defaultNonDestructive);
 
+      BufferHelper.writeNullableLong(buffer, minExpiryDelay);
+
    }
 
    /* (non-Javadoc)
@@ -1030,6 +1053,7 @@ public class AddressSettings implements Mergeable<AddressSettings>, Serializable
       result = prime * result + ((dropMessagesWhenFull == null) ? 0 : dropMessagesWhenFull.hashCode());
       result = prime * result + ((expiryAddress == null) ? 0 : expiryAddress.hashCode());
       result = prime * result + ((expiryDelay == null) ? 0 : expiryDelay.hashCode());
+      result = prime * result + ((minExpiryDelay == null) ? 0 : minExpiryDelay.hashCode());
       result = prime * result + ((defaultLastValueQueue == null) ? 0 : defaultLastValueQueue.hashCode());
       result = prime * result + ((defaultLastValueKey == null) ? 0 : defaultLastValueKey.hashCode());
       result = prime * result + ((defaultNonDestructive == null) ? 0 : defaultNonDestructive.hashCode());
@@ -1106,6 +1130,11 @@ public class AddressSettings implements Mergeable<AddressSettings>, Serializable
          if (other.expiryDelay != null)
             return false;
       } else if (!expiryDelay.equals(other.expiryDelay))
+         return false;
+      if (minExpiryDelay == null) {
+         if (other.minExpiryDelay != null)
+            return false;
+      } else if (!minExpiryDelay.equals(other.minExpiryDelay))
          return false;
       if (defaultLastValueQueue == null) {
          if (other.defaultLastValueQueue != null)
@@ -1317,6 +1346,8 @@ public class AddressSettings implements Mergeable<AddressSettings>, Serializable
          expiryAddress +
          ", expiryDelay=" +
          expiryDelay +
+         ", minExpiryDelay=" +
+         minExpiryDelay +
          ", defaultLastValueQueue=" +
          defaultLastValueQueue +
          ", defaultLastValueKey=" +

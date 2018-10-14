@@ -74,6 +74,8 @@ public class PagedReferenceImpl extends LinkedListImpl.Node<PagedReferenceImpl> 
 
    private long messageSize = -1;
 
+   private long expiration = -1;
+
    @Override
    public Object getProtocolData() {
       return protocolData;
@@ -251,6 +253,14 @@ public class PagedReferenceImpl extends LinkedListImpl.Node<PagedReferenceImpl> 
       } else {
          getQueue().acknowledge(tx, this, reason, consumer);
       }
+   }
+
+   @Override
+   public long getExpiration() {
+      if (expiration == -1) {
+         expiration = getQueue().getExpiration(this);
+      }
+      return expiration;
    }
 
    /* (non-Javadoc)

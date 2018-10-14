@@ -248,6 +248,14 @@ public class MessageReferenceImpl extends LinkedListImpl.Node<MessageReferenceIm
    }
 
    @Override
+   public long getExpiration() {
+      if (expiration == -1) {
+         expiration = getQueue().getExpiration(this);
+      }
+      return expiration;
+   }
+
+   @Override
    public String toString() {
       return "Reference[" + getMessage().getMessageID() +
          "]:" +

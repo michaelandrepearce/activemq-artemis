@@ -281,13 +281,23 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
 
    public volatile long dispatchStartTime = -1;
 
-   private volatile int consumersBeforeDispatch = 0;
+   private volatile int consumersBeforeDispatch;
 
-   private volatile long delayBeforeDispatch = 0;
+   private volatile long delayBeforeDispatch;
 
    private volatile boolean configurationManaged;
 
    private volatile boolean nonDestructive;
+
+   //Address setting default Expiry Delay (min)
+   private volatile long defaultMinExpiryDelay;
+
+   private volatile long defaultMaxExpiryDelay;
+
+   //Queue level expiry Delay
+   private volatile long minExpiryDelay;
+
+   private volatile long maxExpiryDelay;
 
    /**
     * This is to avoid multi-thread races on calculating direct delivery,
@@ -434,7 +444,7 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
                      final ArtemisExecutor executor,
                      final ActiveMQServer server,
                      final QueueFactory factory) {
-      this(id, address, name, filter, pageSubscription, user, durable, temporary, autoCreated, routingType, maxConsumers, exclusive, false, null, null, purgeOnNoConsumers, false, scheduledExecutor, postOffice, storageManager, addressSettingsRepository, executor, server, factory);
+      this(id, address, name, filter, pageSubscription, user, durable, temporary, autoCreated, routingType, maxConsumers, exclusive, false, null, null, null, null, purgeOnNoConsumers, false, scheduledExecutor, postOffice, storageManager, addressSettingsRepository, executor, server, factory);
    }
 
    public QueueImpl(final long id,
@@ -452,6 +462,8 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
                      final Boolean nonDestructive,
                      final Integer consumersBeforeDispatch,
                      final Long delayBeforeDispatch,
+                     final Long minExpiryDelay,
+                     final Long maxExpiryDelay,
                      final Boolean purgeOnNoConsumers,
                      final boolean configurationManaged,
                      final ScheduledExecutorService scheduledExecutor,
@@ -495,6 +507,10 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
 
       this.delayBeforeDispatch = delayBeforeDispatch == null ? ActiveMQDefaultConfiguration.getDefaultDelayBeforeDispatch() : delayBeforeDispatch;
 
+      this.minExpiryDelay = minExpiryDelay == null ? ActiveMQDefaultConfiguration.getDefaultMinExpiryDelay() : minExpiryDelay;
+
+      this.maxExpiryDelay = maxExpiryDelay == null ? ActiveMQDefaultConfiguration.getDefaultMaxExpiryDelay() : maxExpiryDelay;
+
       this.configurationManaged = configurationManaged;
 
       this.postOffice = postOffice;
@@ -512,8 +528,12 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
       if (addressSettingsRepository != null) {
          addressSettingsRepositoryListener = new AddressSettingsRepositoryListener();
          addressSettingsRepository.registerListener(addressSettingsRepositoryListener);
+         AddressSettings settings = addressSettingsRepository.getMatch(address.toString());
+         configureExpiry(settings);
       } else {
          expiryAddress = null;
+         defaultMinExpiryDelay = -1;
+         defaultMaxExpiryDelay = -1;
       }
 
       if (pageSubscription != null) {
@@ -627,7 +647,55 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
       if (purgeOnNoConsumers && getConsumerCount() == 0) {
          return;
       }
+      ensureTimestampIfExpiry(message);
       context.addQueue(address, this);
+   }
+
+    /**
+     * Ensure timestamp exists if (and only if!!) using min or max expiry on queue, if not we have to set one,
+     * as it is used to check expiry later, and re-calculate expiry accurately where needed.
+     * @param message
+     */
+   private void ensureTimestampIfExpiry(final Message message) {
+      if ((getMinExpiryDelayOrDefault() != -1 || getMaxExpiryDelayOrDefault() != -1) && message.getTimestamp() == 0) {
+         message.setTimestamp(System.currentTimeMillis());
+      }
+   }
+
+   @Override
+   public long getExpiration(final MessageReference ref) {
+      return getExpiration(ref, getMinExpiryDelayOrDefault(), getMaxExpiryDelayOrDefault());
+   }
+
+   private long getMinExpiryDelayOrDefault() {
+      return minExpiryDelay == -1 ? defaultMinExpiryDelay : minExpiryDelay;
+   }
+
+   private long getMaxExpiryDelayOrDefault() {
+      return maxExpiryDelay == -1 ? defaultMaxExpiryDelay : maxExpiryDelay;
+   }
+
+   private static long getExpiration(final MessageReference ref, final long minExpiryDelay, final long maxExpiryDelay) {
+      final long expirationTime = ref.getMessage().getExpiration();
+      if (minExpiryDelay >= 0 || maxExpiryDelay >= 0) {
+         long timestamp = ref.getMessage().getTimestamp();
+         if (timestamp == 0) {
+            return expirationTime;
+         }
+         long minExpirationTime = minExpiryDelay >= 0 ? timestamp + minExpiryDelay : 0;
+         long maxExpirationTime = maxExpiryDelay >= 0 ? timestamp + maxExpiryDelay : 0;
+         if (expirationTime == 0) {
+            return maxExpirationTime;
+         } else if (maxExpirationTime > 0 && expirationTime > maxExpirationTime) {
+               return maxExpirationTime;
+         } else if (minExpirationTime > 0 && expirationTime < minExpirationTime) {
+            return minExpirationTime;
+         } else {
+            return expirationTime;
+         }
+      } else {
+         return expirationTime;
+      }
    }
 
    @Override
@@ -1181,6 +1249,26 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
    @Override
    public int getConsumerCount() {
       return consumersCount.get();
+   }
+
+   @Override
+   public long getMinExpiryDelay() {
+      return minExpiryDelay;
+   }
+
+   @Override
+   public void setMinExpiryDelay(long minExpiryDelay) {
+      this.minExpiryDelay = minExpiryDelay;
+   }
+
+   @Override
+   public long getMaxExpiryDelay() {
+      return maxExpiryDelay;
+   }
+
+   @Override
+   public void setMaxExpiryDelay(long maxExpiryDelay) {
+      this.maxExpiryDelay = maxExpiryDelay;
    }
 
    @Override
@@ -1959,6 +2047,7 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
          int elementsExpired = 0;
 
          LinkedList<MessageReference> expiredMessages = new LinkedList<>();
+         long currentTimeMillis = System.currentTimeMillis();
          synchronized (QueueImpl.this) {
             if (queueDestroyed) {
                return;
@@ -1973,7 +2062,8 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
                while (postOffice.isStarted() && iter.hasNext()) {
                   hasElements = true;
                   MessageReference ref = iter.next();
-                  if (ref.getMessage().isExpired()) {
+
+                  if (ref.isExpired(currentTimeMillis)) {
                      incDelivering(ref);
                      expired = true;
                      expiredMessages.add(ref);
@@ -3145,7 +3235,7 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
 
    private boolean checkExpired(final MessageReference reference) {
       try {
-         if (reference.getMessage().isExpired()) {
+         if (reference.isExpired()) {
             if (logger.isTraceEnabled()) {
                logger.trace("Reference " + reference + " is expired");
             }
@@ -3614,6 +3704,8 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
 
    private void configureExpiry(final AddressSettings settings) {
       this.expiryAddress = settings == null ? null : settings.getExpiryAddress();
+      this.defaultMinExpiryDelay = settings == null || settings.getMinExpiryDelay() == null ? -1 : settings.getMinExpiryDelay();
+      this.defaultMaxExpiryDelay = settings == null || settings.getExpiryDelay() == null ? -1 : settings.getExpiryDelay();
    }
 
    private void configureSlowConsumerReaper(final AddressSettings settings) {

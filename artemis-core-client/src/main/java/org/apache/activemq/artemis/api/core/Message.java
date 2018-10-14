@@ -312,11 +312,36 @@ public interface Message {
     * Returns whether this message is expired or not.
     */
    default boolean isExpired() {
-      if (getExpiration() == 0) {
+      return isExpired(getExpiration());
+   }
+
+   /**
+    * To be used by single ref processing, avoids call to System.currentTimeMillis if expiration is 0.
+    *
+    * @param expirationTime to check if expired.
+    * @return if expired.
+    */
+   static boolean isExpired(final long expirationTime) {
+      if (expirationTime == 0) {
          return false;
       }
 
-      return System.currentTimeMillis() - getExpiration() >= 0;
+      return System.currentTimeMillis() - expirationTime >= 0;
+   }
+
+   /**
+    * To be used batch ref (e.g. expiry thread) processing expired messages, to avoid repeated calls to System.currentTimeMillis for perf.
+    *
+    * @param currentTimeMillis time to compare against
+    * @param expirationTime to check if expired.
+    * @return if expired.
+    */
+   static boolean isExpired(final long currentTimeMillis, final long expirationTime) {
+      if (expirationTime == 0) {
+         return false;
+      }
+
+      return currentTimeMillis - expirationTime >= 0;
    }
 
 

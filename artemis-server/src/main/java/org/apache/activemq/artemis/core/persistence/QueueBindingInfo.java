@@ -82,6 +82,14 @@ public interface QueueBindingInfo {
 
    void setDelayBeforeDispatch(long delayBeforeDispatch);
 
+   Long getMinExpiryDelay();
+
+   void setMinExpiryDelay(Long minExpiryDelay);
+
+   Long getMaxExpiryDelay();
+
+   void setMaxExpiryDelay(Long maxExpiryDelay);
+
    byte getRoutingType();
 
    void setRoutingType(byte routingType);

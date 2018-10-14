@@ -409,6 +409,31 @@ public class FakeQueue extends CriticalComponentImpl implements Queue {
    }
 
    @Override
+   public long getMinExpiryDelay() {
+      return -1;
+   }
+
+   @Override
+   public void setMinExpiryDelay(long minExpiryDelay) {
+
+   }
+
+   @Override
+   public long getMaxExpiryDelay() {
+      return -1;
+   }
+
+   @Override
+   public void setMaxExpiryDelay(long maxExpiryDelay) {
+
+   }
+
+   @Override
+   public long getExpiration(MessageReference ref) {
+      return 0;
+   }
+
+   @Override
    public ReferenceCounter getConsumersRefCount() {
       return null;  //To change body of implemented methods use File | Settings | File Templates.
    }

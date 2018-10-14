@@ -42,9 +42,12 @@ public final class QueueConfig {
    private final boolean purgeOnNoConsumers;
    private final int consumersBeforeDispatch;
    private final long delayBeforeDispatch;
+   private final long minExpiryDelay;
+   private final long maxExpiryDelay;
    private final boolean configurationManaged;
    private final SimpleString lastValueKey;
    private final boolean nonDestructive;
+
 
    public static final class Builder {
 
@@ -67,6 +70,8 @@ public final class QueueConfig {
       private int consumersBeforeDispatch;
       private long delayBeforeDispatch;
       private boolean configurationManaged;
+      private long minExpiryDelay;
+      private long maxExpiryDelay;
 
       private Builder(final long id, final SimpleString name) {
          this(id, name, name);
@@ -91,6 +96,8 @@ public final class QueueConfig {
          this.purgeOnNoConsumers = ActiveMQDefaultConfiguration.getDefaultPurgeOnNoConsumers();
          this.consumersBeforeDispatch = ActiveMQDefaultConfiguration.getDefaultConsumersBeforeDispatch();
          this.delayBeforeDispatch = ActiveMQDefaultConfiguration.getDefaultDelayBeforeDispatch();
+         this.minExpiryDelay = ActiveMQDefaultConfiguration.getDefaultMinExpiryDelay();
+         this.maxExpiryDelay = ActiveMQDefaultConfiguration.getDefaultMaxExpiryDelay();
          this.configurationManaged = false;
          validateState();
       }
@@ -178,6 +185,16 @@ public final class QueueConfig {
          return this;
       }
 
+      public Builder minExpiryDelay(final long minExpiryDelay) {
+         this.minExpiryDelay = minExpiryDelay;
+         return this;
+      }
+
+      public Builder maxExpiryDelay(final long maxExpiryDelay) {
+         this.maxExpiryDelay = maxExpiryDelay;
+         return this;
+      }
+
       public Builder purgeOnNoConsumers(final boolean purgeOnNoConsumers) {
          this.purgeOnNoConsumers = purgeOnNoConsumers;
          return this;
@@ -209,7 +226,7 @@ public final class QueueConfig {
          } else {
             pageSubscription = null;
          }
-         return new QueueConfig(id, address, name, filter, pageSubscription, user, durable, temporary, autoCreated, routingType, maxConsumers, exclusive, lastValue, lastValueKey, nonDestructive, consumersBeforeDispatch, delayBeforeDispatch, purgeOnNoConsumers, configurationManaged);
+         return new QueueConfig(id, address, name, filter, pageSubscription, user, durable, temporary, autoCreated, routingType, maxConsumers, exclusive, lastValue, lastValueKey, nonDestructive, consumersBeforeDispatch, delayBeforeDispatch, minExpiryDelay, maxExpiryDelay, purgeOnNoConsumers, configurationManaged);
       }
 
    }
@@ -259,6 +276,8 @@ public final class QueueConfig {
                        final boolean nonDestructive,
                        final int consumersBeforeDispatch,
                        final long delayBeforeDispatch,
+                       final long minExpiryDelay,
+                       final long maxExpiryDelay,
                        final boolean purgeOnNoConsumers,
                        final boolean configurationManaged) {
       this.id = id;
@@ -279,6 +298,8 @@ public final class QueueConfig {
       this.maxConsumers = maxConsumers;
       this.consumersBeforeDispatch = consumersBeforeDispatch;
       this.delayBeforeDispatch = delayBeforeDispatch;
+      this.minExpiryDelay = minExpiryDelay;
+      this.maxExpiryDelay = maxExpiryDelay;
       this.configurationManaged = configurationManaged;
    }
 
@@ -354,6 +375,14 @@ public final class QueueConfig {
       return delayBeforeDispatch;
    }
 
+   public long minExpiryDelay() {
+      return minExpiryDelay;
+   }
+
+   public long maxExpiryDelay() {
+      return maxExpiryDelay;
+   }
+
    public boolean isConfigurationManaged() {
       return configurationManaged;
    }
@@ -401,6 +430,10 @@ public final class QueueConfig {
          return false;
       if (delayBeforeDispatch != that.delayBeforeDispatch)
          return false;
+      if (minExpiryDelay != that.minExpiryDelay)
+         return false;
+      if (maxExpiryDelay != that.maxExpiryDelay)
+         return false;
       if (purgeOnNoConsumers != that.purgeOnNoConsumers)
          return false;
       if (configurationManaged != that.configurationManaged)
@@ -428,6 +461,8 @@ public final class QueueConfig {
       result = 31 * result + (nonDestructive ? 1 : 0);
       result = 31 * result + consumersBeforeDispatch;
       result = 31 * result + Long.hashCode(delayBeforeDispatch);
+      result = 31 * result + Long.hashCode(minExpiryDelay);
+      result = 31 * result + Long.hashCode(maxExpiryDelay);
       result = 31 * result + (purgeOnNoConsumers ? 1 : 0);
       result = 31 * result + (configurationManaged ? 1 : 0);
       return result;
@@ -453,6 +488,8 @@ public final class QueueConfig {
          + ", nonDestructive=" + nonDestructive
          + ", consumersBeforeDispatch=" + consumersBeforeDispatch
          + ", delayBeforeDispatch=" + delayBeforeDispatch
+         + ", minExpiryDelay=" + minExpiryDelay
+         + ", maxExpiryDelay=" + maxExpiryDelay
          + ", purgeOnNoConsumers=" + purgeOnNoConsumers
          + ", configurationManaged=" + configurationManaged + '}';
    }

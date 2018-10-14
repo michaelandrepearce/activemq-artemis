@@ -853,8 +853,6 @@ public class PostOfficeImpl implements PostOffice, NotificationListener, Binding
 
       AtomicBoolean startedTX = new AtomicBoolean(false);
 
-      applyExpiryDelay(message, address);
-
       if (!checkDuplicateID(message, context, rejectDuplicates, startedTX)) {
          return RoutingStatus.DUPLICATED_ID;
       }
@@ -963,19 +961,6 @@ public class PostOfficeImpl implements PostOffice, NotificationListener, Binding
       }
 
       return result;
-   }
-
-   // HORNETQ-1029
-   private void applyExpiryDelay(Message message, SimpleString address) {
-      long expirationOverride = addressSettingsRepository.getMatch(address.toString()).getExpiryDelay();
-
-      // A -1 <expiry-delay> means don't do anything
-      if (expirationOverride >= 0) {
-         // only override the exiration on messages where the expiration hasn't been set by the user
-         if (message.getExpiration() == 0) {
-            message.setExpiration(System.currentTimeMillis() + expirationOverride);
-         }
-      }
    }
 
    @Override

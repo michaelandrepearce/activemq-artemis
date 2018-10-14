@@ -481,6 +481,10 @@ public final class ActiveMQDefaultConfiguration {
 
    public static final long DEFAULT_DELAY_BEFORE_DISPATCH = -1;
 
+   public static final long DEFAULT_MAX_EXPIRY_DELAY = -1;
+
+   public static final long DEFAULT_MIN_EXPIRY_DELAY = -1;
+
    public static final RoutingType DEFAULT_ROUTING_TYPE = RoutingType.MULTICAST;
 
    public static final String DEFAULT_SYSTEM_PROPERTY_PREFIX = "brokerconfig.";
@@ -1326,6 +1330,14 @@ public final class ActiveMQDefaultConfiguration {
 
    public static long getDefaultDelayBeforeDispatch() {
       return DEFAULT_DELAY_BEFORE_DISPATCH;
+   }
+
+   public static long getDefaultMinExpiryDelay() {
+      return DEFAULT_MIN_EXPIRY_DELAY;
+   }
+
+   public static long getDefaultMaxExpiryDelay() {
+      return DEFAULT_MAX_EXPIRY_DELAY;
    }
 
    public static String getInternalNamingPrefix() {

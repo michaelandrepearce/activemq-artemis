@@ -68,6 +68,8 @@ public class LastValueQueue extends QueueImpl {
                          final Boolean exclusive,
                          final Integer consumersBeforeDispatch,
                          final Long delayBeforeDispatch,
+                         final Long minExpiryDelay,
+                         final Long maxExpiryDelay,
                          final Boolean purgeOnNoConsumers,
                          final SimpleString lastValueKey,
                          final Boolean nonDestructive,
@@ -79,7 +81,7 @@ public class LastValueQueue extends QueueImpl {
                          final ArtemisExecutor executor,
                          final ActiveMQServer server,
                          final QueueFactory factory) {
-      super(persistenceID, address, name, filter, pageSubscription, user, durable, temporary, autoCreated, routingType, maxConsumers, exclusive, nonDestructive, consumersBeforeDispatch, delayBeforeDispatch, purgeOnNoConsumers, configurationManaged, scheduledExecutor, postOffice, storageManager, addressSettingsRepository, executor, server, factory);
+      super(persistenceID, address, name, filter, pageSubscription, user, durable, temporary, autoCreated, routingType, maxConsumers, exclusive, nonDestructive, consumersBeforeDispatch, delayBeforeDispatch, minExpiryDelay, maxExpiryDelay, purgeOnNoConsumers, configurationManaged, scheduledExecutor, postOffice, storageManager, addressSettingsRepository, executor, server, factory);
       this.lastValueKey = lastValueKey;
    }
 
@@ -396,6 +398,11 @@ public class LastValueQueue extends QueueImpl {
       @Override
       public long getPersistentSize() throws ActiveMQException {
          return ref.getPersistentSize();
+      }
+
+      @Override
+      public long getExpiration() {
+         return ref.getExpiration();
       }
    }
 
