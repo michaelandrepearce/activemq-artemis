@@ -35,6 +35,7 @@ import org.apache.activemq.artemis.core.server.Queue;
 import org.apache.activemq.artemis.core.server.RoutingContext;
 import org.apache.activemq.artemis.core.server.ServerConsumer;
 import org.apache.activemq.artemis.core.server.impl.AckReason;
+import org.apache.activemq.artemis.core.server.impl.groups.MessageGroups;
 import org.apache.activemq.artemis.core.transaction.Transaction;
 import org.apache.activemq.artemis.utils.ReferenceCounter;
 import org.apache.activemq.artemis.utils.collections.LinkedListIterator;
@@ -420,12 +421,17 @@ public class FakeQueue extends CriticalComponentImpl implements Queue {
    }
 
    @Override
-   public Map<SimpleString, Consumer> getGroups() {
+   public MessageGroups getGroups() {
       return null;
    }
 
    @Override
    public void resetGroup(SimpleString groupID) {
+
+   }
+
+   @Override
+   public void resetMessageGroupId(SimpleString groupId) {
 
    }
 
@@ -796,6 +802,11 @@ public class FakeQueue extends CriticalComponentImpl implements Queue {
    @Override
    public float getRate() {
       return 0.0f;
+   }
+
+   @Override
+   public void setGroups(MessageGroups messageGroups) {
+
    }
 
    @Override

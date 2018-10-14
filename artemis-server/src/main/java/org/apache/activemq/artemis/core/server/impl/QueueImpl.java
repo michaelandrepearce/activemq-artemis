@@ -20,16 +20,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
@@ -79,6 +70,7 @@ import org.apache.activemq.artemis.core.server.ScheduledDeliveryHandler;
 import org.apache.activemq.artemis.core.server.ServerConsumer;
 import org.apache.activemq.artemis.core.server.cluster.RemoteQueueBinding;
 import org.apache.activemq.artemis.core.server.cluster.impl.Redistributor;
+import org.apache.activemq.artemis.core.server.impl.groups.*;
 import org.apache.activemq.artemis.core.server.management.ManagementService;
 import org.apache.activemq.artemis.core.server.management.Notification;
 import org.apache.activemq.artemis.core.settings.HierarchicalRepository;
@@ -233,9 +225,9 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
 
    private final AtomicInteger consumersCount = new AtomicInteger();
 
-   private final Set<Consumer> consumerSet = new HashSet<>();
+   private final List<Consumer> consumers = new ArrayList<>();
 
-   private final Map<SimpleString, Consumer> groups = new HashMap<>();
+   private volatile MessageGroups groups = new SimpleMessageGroups();
 
    private volatile SimpleString expiryAddress;
 
@@ -269,6 +261,10 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
 
    private volatile boolean exclusive;
 
+   private volatile int messageGroupBuckets;
+
+   private volatile boolean messageGroupSharded;
+
    private volatile boolean purgeOnNoConsumers;
 
    private final AddressInfo addressInfo;
@@ -298,7 +294,7 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
    /**
     * For testing only
     */
-   public List<SimpleString> getGroupsUsed() {
+   public List<Object> getGroupsUsed() {
       final CountDownLatch flush = new CountDownLatch(1);
       executor.execute(new Runnable() {
          @Override
@@ -312,8 +308,8 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
       }
 
       synchronized (this) {
-         ArrayList<SimpleString> groupsUsed = new ArrayList<>();
-         groupsUsed.addAll(groups.keySet());
+         ArrayList<Object> groupsUsed = new ArrayList<>();
+         groups.forEach((k,v) -> groupsUsed.add(k));
          return groupsUsed;
       }
    }
@@ -528,6 +524,27 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
       this.user = user;
 
       this.factory = factory;
+
+      setMessageGroups();
+   }
+
+   private synchronized void setMessageGroups() {
+      if (internalQueue) {
+         setGroups(new DisabledMessageGroups());
+      } else if (exclusive) {
+         setGroups(new ExclusiveMessageGroups());
+      } else if (messageGroupBuckets > 0) {
+         setGroups(new BucketMessageGroups(messageGroupBuckets));
+      } else if (messageGroupSharded) {
+         setGroups(new ShardedMessageGroups());
+      } else {
+         setGroups(new SimpleMessageGroups());
+      }
+   }
+
+   @Override
+   public synchronized void setGroups(MessageGroups messageGroups) {
+      groups = messageGroups;
    }
 
    // Bindable implementation -------------------------------------------------------------------------------------
@@ -557,7 +574,10 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
 
    @Override
    public synchronized void setExclusive(boolean exclusive) {
-      this.exclusive = exclusive;
+      if (exclusive != this.exclusive) {
+         this.exclusive = exclusive;
+         setMessageGroups();
+      }
    }
 
    @Override
@@ -754,7 +774,7 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
             @Override
             public void run() {
                synchronized (QueueImpl.this) {
-                  if (groups.remove(groupIDToRemove) != null) {
+                  if (groups.resetMessageGroupId(groupIDToRemove) != null) {
                      logger.debug("Removing group after unproposal " + groupID + " from queue " + QueueImpl.this);
                   } else {
                      logger.debug("Couldn't remove Removing group " + groupIDToRemove + " after unproposal on queue " + QueueImpl.this);
@@ -1033,7 +1053,8 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
 
             consumerList.add(new ConsumerHolder(consumer));
 
-            if (consumerSet.add(consumer)) {
+            if (!consumers.contains(consumer)) {
+               consumers.add(consumer);
                int currentConsumerCount = consumersCount.incrementAndGet();
                if (delayBeforeDispatch >= 0) {
                   dispatchStartTimeUpdater.compareAndSet(this,-1, delayBeforeDispatch + System.currentTimeMillis());
@@ -1080,7 +1101,7 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
                pos = consumerList.size() - 1;
             }
 
-            if (consumerSet.remove(consumer)) {
+            if (consumers.remove(consumer)) {
                int currentConsumerCount = consumersCount.decrementAndGet();
                boolean stopped = dispatchingUpdater.compareAndSet(this, BooleanUtil.toInt(true), BooleanUtil.toInt(currentConsumerCount != 0));
                if (stopped) {
@@ -1088,25 +1109,9 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
                }
             }
 
-            LinkedList<SimpleString> groupsToRemove = null;
+            LinkedList<Object> groupsToRemove = new LinkedList<>();
 
-            for (SimpleString groupID : groups.keySet()) {
-               if (consumer == groups.get(groupID)) {
-                  if (groupsToRemove == null) {
-                     groupsToRemove = new LinkedList<>();
-                  }
-                  groupsToRemove.add(groupID);
-               }
-            }
-
-            // We use an auxiliary List here to avoid concurrent modification exceptions on the keySet
-            // while the iteration is being done.
-            // Since that's a simple HashMap there's no Iterator's support with a remove operation
-            if (groupsToRemove != null) {
-               for (SimpleString groupID : groupsToRemove) {
-                  groups.remove(groupID);
-               }
-            }
+            groups.removeConsumer(consumer);
 
             if (refCountForConsumers != null) {
                refCountForConsumers.decrement();
@@ -1143,7 +1148,7 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
       }
 
       if (delay > 0) {
-         if (consumerSet.isEmpty()) {
+         if (consumers.isEmpty()) {
             DelayedAddRedistributor dar = new DelayedAddRedistributor(executor);
 
             redistributorFuture = scheduledExecutor.schedule(dar, delay, TimeUnit.MILLISECONDS);
@@ -1184,28 +1189,33 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
    }
 
    @Override
-   public synchronized Set<Consumer> getConsumers() {
-      return new HashSet<>(consumerSet);
+   public synchronized Collection<Consumer> getConsumers() {
+      return new ArrayList<>(consumers);
    }
 
    @Override
-   public synchronized Map<SimpleString, Consumer> getGroups() {
-      return new HashMap<>(groups);
+   public synchronized MessageGroups getGroups() {
+      return groups;
    }
 
    @Override
-   public synchronized void resetGroup(SimpleString groupId) {
-      groups.remove(groupId);
+   public synchronized void resetGroup(SimpleString id) {
+      groups.reset(id);
+   }
+
+   @Override
+   public synchronized void resetMessageGroupId(SimpleString groupId) {
+      groups.resetMessageGroupId(groupId);
    }
 
    @Override
    public synchronized void resetAllGroups() {
-      groups.clear();
+      groups.resetAll();
    }
 
    @Override
    public synchronized int getGroupCount() {
-      return groups.size();
+      return groups.count();
    }
 
    @Override
@@ -2305,7 +2315,10 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
     */
    @Override
    public void setInternalQueue(boolean internalQueue) {
-      this.internalQueue = internalQueue;
+      if (internalQueue != this.internalQueue) {
+         this.internalQueue = internalQueue;
+         setMessageGroups();
+      }
    }
 
    // Public
@@ -2498,18 +2511,10 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
 
                // If a group id is set, then this overrides the consumer chosen round-robin
 
-               SimpleString groupID = extractGroupID(ref);
+               groupConsumer = groups.consumer(consumers, ref);
 
-               if (groupID != null) {
-                  groupConsumer = groups.get(groupID);
-
-                  if (groupConsumer != null) {
-                     consumer = groupConsumer;
-                  }
-               }
-
-               if (exclusive && redistributor == null) {
-                  consumer = consumerList.get(0).consumer;
+               if (groupConsumer != null) {
+                  consumer = groupConsumer;
                }
 
                HandleStatus status = handle(ref, consumer);
@@ -2522,8 +2527,8 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
 
                   removeMessageReference(holder, ref);
 
-                  if (groupID != null && groupConsumer == null) {
-                     groups.put(groupID, consumer);
+                  if (groupConsumer == null) {
+                     groups.register(ref, consumer);
                   }
 
                   handled++;
@@ -2544,7 +2549,7 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
                }
             }
 
-            if (redistributor != null || groupConsumer != null || exclusive) {
+            if (redistributor != null || groupConsumer != null) {
                if (noDelivery > 0) {
                   break;
                }
@@ -2570,7 +2575,7 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
 
             // Only move onto the next position if the consumer on the current position was used.
             // When using group we don't need to load balance to the next position
-            if (redistributor == null && !exclusive && groupConsumer == null) {
+            if (redistributor == null && groupConsumer == null) {
                pos++;
             }
 
@@ -2610,20 +2615,6 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
     */
    private boolean needsDepage() {
       return queueMemorySize.get() < pageSubscription.getPagingStore().getMaxSize();
-   }
-
-   private SimpleString extractGroupID(MessageReference ref) {
-      if (internalQueue) {
-         return null;
-      } else {
-         try {
-            // But we don't use the groupID on internal queues (clustered queues) otherwise the group map would leak forever
-            return ref.getMessage().getGroupID();
-         } catch (Throwable e) {
-            ActiveMQServerLogger.LOGGER.unableToExtractGroupID(e);
-            return null;
-         }
-      }
    }
 
    protected void refRemoved(MessageReference ref) {
@@ -2704,7 +2695,7 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
 
    private void internalAddRedistributor(final ArtemisExecutor executor) {
       // create the redistributor only once if there are no local consumers
-      if (consumerSet.isEmpty() && redistributor == null) {
+      if (consumers.isEmpty() && redistributor == null) {
          if (logger.isTraceEnabled()) {
             logger.trace("QueueImpl::Adding redistributor on queue " + this.toString());
          }
@@ -3075,22 +3066,14 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
 
             // If a group id is set, then this overrides the consumer chosen round-robin
 
-            SimpleString groupID = extractGroupID(ref);
+            groupConsumer = groups.consumer(ref);
 
-            if (groupID != null) {
-               groupConsumer = groups.get(groupID);
-
-               if (groupConsumer != null) {
-                  consumer = groupConsumer;
-               }
-            }
-
-            if (exclusive && redistributor == null) {
-               consumer = consumerList.get(0).consumer;
+            if (groupConsumer != null) {
+               consumer = groupConsumer;
             }
 
             // Only move onto the next position if the consumer on the current position was used.
-            if (redistributor == null && !exclusive && groupConsumer == null) {
+            if (redistributor == null && groupConsumer == null) {
                pos++;
             }
 
@@ -3101,8 +3084,8 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
             HandleStatus status = handle(ref, consumer);
 
             if (status == HandleStatus.HANDLED) {
-               if (groupID != null && groupConsumer == null) {
-                  groups.put(groupID, consumer);
+               if (groupConsumer == null) {
+                  groups.register(ref, consumer);
                }
 
                messagesAdded.incrementAndGet();
@@ -3112,7 +3095,7 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
                return true;
             }
 
-            if (pos == startPos || redistributor != null || groupConsumer != null || exclusive) {
+            if (pos == startPos || redistributor != null || groupConsumer != null) {
                // Tried them all
                break;
             }

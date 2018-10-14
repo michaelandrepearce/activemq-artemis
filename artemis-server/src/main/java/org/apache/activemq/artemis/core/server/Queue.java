@@ -30,6 +30,7 @@ import org.apache.activemq.artemis.core.paging.cursor.PageSubscription;
 import org.apache.activemq.artemis.core.persistence.OperationContext;
 import org.apache.activemq.artemis.core.postoffice.Binding;
 import org.apache.activemq.artemis.core.server.impl.AckReason;
+import org.apache.activemq.artemis.core.server.impl.groups.MessageGroups;
 import org.apache.activemq.artemis.core.transaction.Transaction;
 import org.apache.activemq.artemis.utils.ReferenceCounter;
 import org.apache.activemq.artemis.utils.collections.LinkedListIterator;
@@ -281,9 +282,11 @@ public interface Queue extends Bindable,CriticalComponent {
 
    Collection<Consumer> getConsumers();
 
-   Map<SimpleString, Consumer> getGroups();
+   MessageGroups getGroups();
 
-   void resetGroup(SimpleString groupID);
+   void resetGroup(SimpleString id);
+
+   void resetMessageGroupId(SimpleString groupId);
 
    void resetAllGroups();
 
@@ -376,6 +379,8 @@ public interface Queue extends Bindable,CriticalComponent {
    void postAcknowledge(MessageReference ref);
 
    float getRate();
+
+   void setGroups(MessageGroups messageGroups);
 
    /**
     * @return the user associated with this queue

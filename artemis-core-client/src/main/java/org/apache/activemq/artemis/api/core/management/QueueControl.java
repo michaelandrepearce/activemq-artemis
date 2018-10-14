@@ -599,13 +599,30 @@ public interface QueueControl {
    void resetAllGroups();
 
    /**
-    * Will reset the group matching the given groupID.
-    * This is useful if you want the given group to be rebalanced to the consumers
+    * Will reset the group matching the given id of the group.
+    * This is useful if you want the given group to be rebalanced to the consumers.
+    *
+    * This is the id provided by the message group implementation
+    *
+    * For many message group policies there is no difference between, resetGroup and resetMessageGroupId
+    * But for the likes of BucketMessageGroups the id is the bucket, where as message group is the groupId that a message would have.
     */
    @Operation(desc = "Reset the specified group", impact = MBeanOperationInfo.ACTION)
-   void resetGroup(@Parameter(name = "groupID", desc = "ID of group to reset") String groupID);
+   void resetGroup(@Parameter(name = "id", desc = "ID of group to reset") String id);
 
    /**
+    * Will reset the group matching the given message group id.
+    * This is useful if you want the given group to be rebalanced to the consumers
+    *
+    * This is the id of the message group that's used to get the message group implementation group id.
+    *
+    * For many message group policies there is no difference between, resetGroup and resetMessageGroupId
+    * But for the likes of BucketMessageGroups the id is the bucket, where as message group is the groupId that a message would have.
+    */
+   @Operation(desc = "Reset the specified group using message group id", impact = MBeanOperationInfo.ACTION)
+   void resetMessageGroupId(@Parameter(name = "groupID", desc = "Message Group ID to reset group for") String groupID);
+
+    /**
     * Will return the current number of active groups.
     */
    @Attribute(desc = "Get the current number of active groups")

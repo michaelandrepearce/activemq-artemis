@@ -50,6 +50,7 @@ import org.apache.activemq.artemis.core.server.MessageReference;
 import org.apache.activemq.artemis.core.server.Queue;
 import org.apache.activemq.artemis.core.server.RoutingContext;
 import org.apache.activemq.artemis.core.server.ServerConsumer;
+import org.apache.activemq.artemis.core.server.impl.groups.MessageGroups;
 import org.apache.activemq.artemis.core.transaction.Transaction;
 import org.apache.activemq.artemis.utils.ActiveMQThreadFactory;
 import org.apache.activemq.artemis.utils.RandomUtil;
@@ -1292,12 +1293,17 @@ public class ScheduledDeliveryHandlerTest extends Assert {
       }
 
       @Override
-      public Map<SimpleString, Consumer> getGroups() {
+      public MessageGroups getGroups() {
          return null;
       }
 
       @Override
       public void resetGroup(SimpleString groupID) {
+
+      }
+
+      @Override
+      public void resetMessageGroupId(SimpleString groupId) {
 
       }
 
@@ -1436,6 +1442,11 @@ public class ScheduledDeliveryHandlerTest extends Assert {
       @Override
       public float getRate() {
          return 0.0f;
+      }
+
+      @Override
+      public void setGroups(MessageGroups messageGroups) {
+
       }
 
       @Override

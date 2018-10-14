@@ -53,6 +53,7 @@ import org.apache.activemq.artemis.core.server.Consumer;
 import org.apache.activemq.artemis.core.server.MessageReference;
 import org.apache.activemq.artemis.core.server.Queue;
 import org.apache.activemq.artemis.core.server.ServerConsumer;
+import org.apache.activemq.artemis.core.server.impl.groups.MessageGroups;
 import org.apache.activemq.artemis.core.settings.HierarchicalRepository;
 import org.apache.activemq.artemis.core.settings.impl.AddressSettings;
 import org.apache.activemq.artemis.spi.core.protocol.RemotingConnection;
@@ -1230,12 +1231,24 @@ public class QueueControlImpl extends AbstractControl implements QueueControl {
    }
 
    @Override
-   public void resetGroup(String groupID) {
+   public void resetGroup(String id) {
       checkStarted();
 
       clearIO();
       try {
-         queue.resetGroup(SimpleString.toSimpleString(groupID));
+         queue.resetGroup(SimpleString.toSimpleString(id));
+      } finally {
+         blockOnIO();
+      }
+   }
+
+   @Override
+   public void resetMessageGroupId(String id) {
+      checkStarted();
+
+      clearIO();
+      try {
+         queue.resetMessageGroupId(SimpleString.toSimpleString(id));
       } finally {
          blockOnIO();
       }
@@ -1259,22 +1272,21 @@ public class QueueControlImpl extends AbstractControl implements QueueControl {
 
       clearIO();
       try {
-         Map<SimpleString, Consumer> groups = queue.getGroups();
+         MessageGroups groups = queue.getGroups();
 
          JsonArrayBuilder jsonArray = JsonLoader.createArrayBuilder();
 
-         for (Map.Entry<SimpleString, Consumer> group : groups.entrySet()) {
+         groups.forEach((k,v) -> {
 
-            if (group.getValue() instanceof ServerConsumer) {
-               ServerConsumer serverConsumer = (ServerConsumer) group.getValue();
+            if (v instanceof ServerConsumer) {
+               ServerConsumer serverConsumer = (ServerConsumer) v;
 
-               JsonObjectBuilder obj = JsonLoader.createObjectBuilder().add("groupID", group.getKey().toString()).add("consumerID", serverConsumer.getID()).add("connectionID", serverConsumer.getConnectionID().toString()).add("sessionID", serverConsumer.getSessionID()).add("browseOnly", serverConsumer.isBrowseOnly()).add("creationTime", serverConsumer.getCreationTime());
+               JsonObjectBuilder obj = JsonLoader.createObjectBuilder().add("groupID", k.toString()).add("consumerID", serverConsumer.getID()).add("connectionID", serverConsumer.getConnectionID().toString()).add("sessionID", serverConsumer.getSessionID()).add("browseOnly", serverConsumer.isBrowseOnly()).add("creationTime", serverConsumer.getCreationTime());
 
                jsonArray.add(obj);
             }
 
-         }
-
+         });
          return jsonArray.build().toString();
       } finally {
          blockOnIO();
