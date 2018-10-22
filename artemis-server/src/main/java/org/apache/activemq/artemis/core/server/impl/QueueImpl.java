@@ -2522,9 +2522,7 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
 
                   removeMessageReference(holder, ref);
 
-                  if (groupID != null && groupConsumer == null) {
-                     groups.put(groupID, consumer);
-                  }
+                  handleMessageGroup(ref, consumer, groupConsumer, groupID);
 
                   handled++;
                } else if (status == HandleStatus.BUSY) {
@@ -2622,6 +2620,20 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
          } catch (Throwable e) {
             ActiveMQServerLogger.LOGGER.unableToExtractGroupID(e);
             return null;
+         }
+      }
+   }
+
+   private int extractGroupSequence(MessageReference ref) {
+      if (internalQueue) {
+         return 0;
+      } else {
+         try {
+            // But we don't use the groupID on internal queues (clustered queues) otherwise the group map would leak forever
+            return ref.getMessage().getGroupSequence();
+         } catch (Throwable e) {
+            ActiveMQServerLogger.LOGGER.unableToExtractGroupSequence(e);
+            return 0;
          }
       }
    }
@@ -3101,9 +3113,7 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
             HandleStatus status = handle(ref, consumer);
 
             if (status == HandleStatus.HANDLED) {
-               if (groupID != null && groupConsumer == null) {
-                  groups.put(groupID, consumer);
-               }
+               handleMessageGroup(ref, consumer, groupConsumer, groupID);
 
                messagesAdded.incrementAndGet();
 
@@ -3118,6 +3128,17 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
             }
          }
          return false;
+      }
+   }
+
+   private void handleMessageGroup(MessageReference ref, Consumer consumer, Consumer groupConsumer, SimpleString groupID) {
+      if (groupID != null) {
+         if (extractGroupSequence(ref) == -1) {
+            groups.remove(groupID);
+         }
+         if (groupConsumer == null) {
+            groups.put(groupID, consumer);
+         }
       }
    }
 
