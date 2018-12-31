@@ -21,7 +21,7 @@ import java.util.List;
 import org.apache.activemq.artemis.core.filter.Filter;
 import org.apache.activemq.artemis.spi.core.protocol.SessionCallback;
 
-public interface Consumer {
+public interface Consumer extends PriorityAware {
 
    /**
     *
