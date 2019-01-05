@@ -33,7 +33,9 @@ public class PacketImpl implements Packet {
    public static final int ADDRESSING_CHANGE_VERSION = 129;
 
    // 2.7.0
-   public static final int ASYNC_RESPONSE_CHANGE_VERSION = 130;
+   public static final int ARTEMIS_2_7_0_VERSION = 130;
+   public static final int ASYNC_RESPONSE_CHANGE_VERSION = ARTEMIS_2_7_0_VERSION;
+   public static final int CONSUMER_PRIORITY_CHANGE_VERSION = ARTEMIS_2_7_0_VERSION;
 
 
    public static final SimpleString OLD_QUEUE_PREFIX = new SimpleString("jms.queue.");
@@ -273,6 +275,9 @@ public class PacketImpl implements Packet {
    public static final byte SESS_QUEUEQUERY_RESP_V3 = -14;
 
    public static final byte SESS_BINDINGQUERY_RESP_V4 = -15;
+
+   public static final byte SESS_CREATECONSUMER_V2 = -16;
+
 
 
    // Static --------------------------------------------------------

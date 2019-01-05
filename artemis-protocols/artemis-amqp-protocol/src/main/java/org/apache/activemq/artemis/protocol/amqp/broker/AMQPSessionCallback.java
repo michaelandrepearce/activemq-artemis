@@ -17,7 +17,6 @@
 package org.apache.activemq.artemis.protocol.amqp.broker;
 
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 
 import org.apache.activemq.artemis.api.config.ActiveMQDefaultConfiguration;
@@ -217,8 +216,8 @@ public class AMQPSessionCallback implements SessionCallback {
    }
 
    private int getPriority(Map<Symbol, Object> properties) {
-      Integer value = properties == null ? null : (Integer) properties.get(PRIORITY);
-      return value == null ? ActiveMQDefaultConfiguration.getDefaultConsumerPriority() : value;
+      Number value = properties == null ? null : (Number) properties.get(PRIORITY);
+      return value == null ? ActiveMQDefaultConfiguration.getDefaultConsumerPriority() : value.intValue();
    }
 
    public void startSender(Object brokerConsumer) throws Exception {

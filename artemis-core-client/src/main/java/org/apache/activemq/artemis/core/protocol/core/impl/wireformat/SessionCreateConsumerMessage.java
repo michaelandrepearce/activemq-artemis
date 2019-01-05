@@ -16,7 +16,6 @@
  */
 package org.apache.activemq.artemis.core.protocol.core.impl.wireformat;
 
-import org.apache.activemq.artemis.api.config.ActiveMQDefaultConfiguration;
 import org.apache.activemq.artemis.api.core.ActiveMQBuffer;
 import org.apache.activemq.artemis.api.core.SimpleString;
 
@@ -26,8 +25,6 @@ public class SessionCreateConsumerMessage extends QueueAbstractPacket {
 
    private SimpleString filterString;
 
-   private int priority;
-
    private boolean browseOnly;
 
    private boolean requiresResponse;
@@ -35,34 +32,47 @@ public class SessionCreateConsumerMessage extends QueueAbstractPacket {
    public SessionCreateConsumerMessage(final long id,
                                        final SimpleString queueName,
                                        final SimpleString filterString,
-                                       final int priority,
                                        final boolean browseOnly,
                                        final boolean requiresResponse) {
-      super(SESS_CREATECONSUMER);
+      this(SESS_CREATECONSUMER, id, queueName, filterString, browseOnly, requiresResponse);
+   }
 
+   public SessionCreateConsumerMessage(final byte type,
+                                       final long id,
+                                       final SimpleString queueName,
+                                       final SimpleString filterString,
+                                       final boolean browseOnly,
+                                       final boolean requiresResponse) {
+      super(type);
       this.id = id;
       this.queueName = queueName;
       this.filterString = filterString;
-      this.priority = priority;
       this.browseOnly = browseOnly;
       this.requiresResponse = requiresResponse;
    }
 
    public SessionCreateConsumerMessage() {
-      super(SESS_CREATECONSUMER);
+      this(SESS_CREATECONSUMER);
+   }
+
+   SessionCreateConsumerMessage(byte type) {
+      super(type);
    }
 
    @Override
    public String toString() {
       StringBuffer buff = new StringBuffer(getParentString());
+      appendToString(buff);
+      buff.append("]");
+      return buff.toString();
+   }
+
+   void appendToString(StringBuffer buff) {
       buff.append(", queueName=" + queueName);
       buff.append(", filterString=" + filterString);
-      buff.append(", priority=" + priority);
       buff.append(", id=" + id);
       buff.append(", browseOnly=" + browseOnly);
       buff.append(", requiresResponse=" + requiresResponse);
-      buff.append("]");
-      return buff.toString();
    }
 
    public long getID() {
@@ -71,10 +81,6 @@ public class SessionCreateConsumerMessage extends QueueAbstractPacket {
 
    public SimpleString getFilterString() {
       return filterString;
-   }
-
-   public int getPriority() {
-      return priority;
    }
 
    public boolean isBrowseOnly() {
@@ -94,10 +100,6 @@ public class SessionCreateConsumerMessage extends QueueAbstractPacket {
       this.filterString = filterString;
    }
 
-   public void setPriority(byte priority) {
-      this.priority = priority;
-   }
-
    public void setBrowseOnly(boolean browseOnly) {
       this.browseOnly = browseOnly;
    }
@@ -109,7 +111,6 @@ public class SessionCreateConsumerMessage extends QueueAbstractPacket {
       buffer.writeNullableSimpleString(filterString);
       buffer.writeBoolean(browseOnly);
       buffer.writeBoolean(requiresResponse);
-      buffer.writeInt(priority);
    }
 
    @Override
@@ -119,11 +120,6 @@ public class SessionCreateConsumerMessage extends QueueAbstractPacket {
       filterString = buffer.readNullableSimpleString();
       browseOnly = buffer.readBoolean();
       requiresResponse = buffer.readBoolean();
-      if (buffer.readableBytes() > 0) {
-         priority = buffer.readInt();
-      } else {
-         priority = ActiveMQDefaultConfiguration.getDefaultConsumerPriority();
-      }
    }
 
    @Override
@@ -133,7 +129,6 @@ public class SessionCreateConsumerMessage extends QueueAbstractPacket {
       result = prime * result + (browseOnly ? 1231 : 1237);
       result = prime * result + ((filterString == null) ? 0 : filterString.hashCode());
       result = prime * result + (int) (id ^ (id >>> 32));
-      result = prime * result + priority;
       result = prime * result + ((queueName == null) ? 0 : queueName.hashCode());
       result = prime * result + (requiresResponse ? 1231 : 1237);
       return result;
@@ -154,8 +149,6 @@ public class SessionCreateConsumerMessage extends QueueAbstractPacket {
          if (other.filterString != null)
             return false;
       } else if (!filterString.equals(other.filterString))
-         return false;
-      if (priority != other.priority)
          return false;
       if (id != other.id)
          return false;

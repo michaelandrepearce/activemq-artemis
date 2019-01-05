@@ -89,7 +89,7 @@ public class HornetQClientSessionContext extends ActiveMQSessionContext {
 
       ActiveMQConsumerContext consumerContext = new ActiveMQConsumerContext(consumerID);
 
-      SessionCreateConsumerMessage request = new SessionCreateConsumerMessage(consumerID, queueName, filterString, priority, browseOnly, true);
+      SessionCreateConsumerMessage request = new SessionCreateConsumerMessage(consumerID, queueName, filterString, browseOnly, true);
 
       SessionQueueQueryResponseMessage queueInfo = (SessionQueueQueryResponseMessage) getSessionChannel().sendBlocking(request, PacketImpl.SESS_QUEUEQUERY_RESP);
 

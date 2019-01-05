@@ -87,6 +87,7 @@ import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionClo
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionConsumerCloseMessage;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionConsumerFlowCreditMessage;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionCreateConsumerMessage;
+import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionCreateConsumerMessage_V2;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionDeleteQueueMessage;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionExpireMessage;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionForceConsumerDelivery;
@@ -378,7 +379,12 @@ public class ActiveMQSessionContext extends SessionContext {
 
       ActiveMQConsumerContext consumerContext = new ActiveMQConsumerContext(consumerID);
 
-      SessionCreateConsumerMessage request = new SessionCreateConsumerMessage(consumerID, queueName, filterString, priority, browseOnly, true);
+      final SessionCreateConsumerMessage request;
+      if (sessionChannel.getConnection().isVersionBeforeConsumerPriorityChange()) {
+         request = new SessionCreateConsumerMessage(consumerID, queueName, filterString, browseOnly, true);
+      } else {
+         request = new SessionCreateConsumerMessage_V2(consumerID, queueName, filterString, priority, browseOnly, true);
+      }
 
       SessionQueueQueryResponseMessage queueInfo;
 
@@ -876,7 +882,12 @@ public class ActiveMQSessionContext extends SessionContext {
          sendPacketWithoutLock(sessionChannel, createQueueRequest);
       }
 
-      SessionCreateConsumerMessage createConsumerRequest = new SessionCreateConsumerMessage(getConsumerID(consumerInternal), consumerInternal.getQueueName(), consumerInternal.getFilterString(), consumerInternal.getPriority(), consumerInternal.isBrowseOnly(), false);
+      final SessionCreateConsumerMessage createConsumerRequest;
+      if (sessionChannel.getConnection().isVersionBeforeConsumerPriorityChange()) {
+         createConsumerRequest = new SessionCreateConsumerMessage(getConsumerID(consumerInternal), consumerInternal.getQueueName(), consumerInternal.getFilterString(), consumerInternal.isBrowseOnly(), false);
+      } else {
+         createConsumerRequest = new SessionCreateConsumerMessage_V2(getConsumerID(consumerInternal), consumerInternal.getQueueName(), consumerInternal.getFilterString(), consumerInternal.getPriority(), consumerInternal.isBrowseOnly(), false);
+      }
 
       sendPacketWithoutLock(sessionChannel, createConsumerRequest);
 

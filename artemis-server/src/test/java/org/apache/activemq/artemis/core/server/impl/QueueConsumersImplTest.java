@@ -16,7 +16,7 @@
  */
 package org.apache.activemq.artemis.core.server.impl;
 
-import org.apache.activemq.artemis.core.server.PriorityAware;
+import org.apache.activemq.artemis.core.PriorityAware;
 import org.junit.Before;
 import org.junit.Test;
 

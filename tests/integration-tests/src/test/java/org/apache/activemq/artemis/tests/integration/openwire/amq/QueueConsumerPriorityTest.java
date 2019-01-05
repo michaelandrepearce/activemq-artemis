@@ -60,6 +60,6 @@ public class QueueConsumerPriorityTest extends BasicOpenWireTest {
          producer.send(msg);
          assertNotNull("null on iteration: " + i, highConsumer.receive(1000));
       }
-      assertNull(lowConsumer.receive(2000));
+      assertNull(lowConsumer.receive(250));
    }
 }

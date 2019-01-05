@@ -21,8 +21,6 @@ import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -43,7 +41,6 @@ import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
-import java.util.stream.Collectors;
 
 import org.apache.activemq.artemis.api.config.ActiveMQDefaultConfiguration;
 import org.apache.activemq.artemis.api.core.ActiveMQException;
@@ -75,7 +72,7 @@ import org.apache.activemq.artemis.core.server.ActiveMQServerLogger;
 import org.apache.activemq.artemis.core.server.Consumer;
 import org.apache.activemq.artemis.core.server.HandleStatus;
 import org.apache.activemq.artemis.core.server.MessageReference;
-import org.apache.activemq.artemis.core.server.PriorityAware;
+import org.apache.activemq.artemis.core.PriorityAware;
 import org.apache.activemq.artemis.core.server.Queue;
 import org.apache.activemq.artemis.core.server.QueueFactory;
 import org.apache.activemq.artemis.core.server.RoutingContext;
@@ -102,6 +99,7 @@ import org.apache.activemq.artemis.utils.actors.ArtemisExecutor;
 import org.apache.activemq.artemis.utils.collections.LinkedListIterator;
 import org.apache.activemq.artemis.utils.collections.PriorityLinkedList;
 import org.apache.activemq.artemis.utils.collections.PriorityLinkedListImpl;
+import org.apache.activemq.artemis.utils.collections.SingletonIterator;
 import org.apache.activemq.artemis.utils.collections.TypedProperties;
 import org.apache.activemq.artemis.utils.critical.CriticalComponentImpl;
 import org.apache.activemq.artemis.utils.critical.EmptyCriticalAnalyzer;
@@ -234,7 +232,7 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
    private final AtomicInteger consumersCount = new AtomicInteger();
 
    private volatile long consumerRemovedTimestamp = -1;
-   private final QueueConsumers<ConsumerHolder<Consumer>> consumers = new QueueConsumersImpl<>();
+   private final QueueConsumers<ConsumerHolder<? extends Consumer>> consumers = new QueueConsumersImpl<>();
 
    private final Map<SimpleString, Consumer> groups = new HashMap<>();
 
@@ -1043,8 +1041,7 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
 
             cancelRedistributor();
             ConsumerHolder<Consumer> newConsumerHolder = new ConsumerHolder<>(consumer);
-            if (!consumers.contains(newConsumerHolder)) {
-               consumers.add(newConsumerHolder);
+            if (consumers.add(newConsumerHolder)) {
                int currentConsumerCount = consumers.size();
                if (delayBeforeDispatch >= 0) {
                   dispatchStartTimeUpdater.compareAndSet(this,-1, delayBeforeDispatch + System.currentTimeMillis());
@@ -1202,7 +1199,11 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
 
    @Override
    public Set<Consumer> getConsumers() {
-      return this.consumers.stream().map(ConsumerHolder::consumer).collect(Collectors.toSet());
+      Set<Consumer> consumersSet = new HashSet<>(this.consumers.size());
+      for (ConsumerHolder<? extends Consumer> consumerHolder : consumers) {
+         consumersSet.add(consumerHolder.consumer);
+      }
+      return consumersSet;
    }
 
    @Override
@@ -1374,32 +1375,21 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
 
    @Override
    public Map<String, List<MessageReference>> getDeliveringMessages() {
-
-      Collection<ConsumerHolder> consumerListClone = cloneConsumers();
+      final Iterator<ConsumerHolder<? extends Consumer>> consumerHolderIterator;
+      synchronized (this) {
+         consumerHolderIterator = redistributor == null ? consumers.iterator() : SingletonIterator.newInstance(redistributor);
+      }
 
       Map<String, List<MessageReference>> mapReturn = new HashMap<>();
 
-      for (ConsumerHolder holder : consumerListClone) {
+      while (consumerHolderIterator.hasNext()) {
+         ConsumerHolder holder = consumerHolderIterator.next();
          List<MessageReference> msgs = holder.consumer.getDeliveringMessages();
          if (msgs != null && msgs.size() > 0) {
             mapReturn.put(holder.consumer.toManagementString(), msgs);
          }
       }
-
       return mapReturn;
-   }
-
-
-   private Collection<ConsumerHolder> cloneConsumers() {
-      Collection<ConsumerHolder> consumersClone;
-      synchronized (this) {
-         if (redistributor == null) {
-            consumersClone = new ArrayList<>(consumers);
-         } else {
-            consumersClone = Collections.singletonList(redistributor);
-         }
-      }
-      return consumersClone;
    }
 
    @Override

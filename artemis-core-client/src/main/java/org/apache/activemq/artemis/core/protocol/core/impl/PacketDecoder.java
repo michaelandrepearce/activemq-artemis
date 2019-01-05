@@ -23,6 +23,7 @@ import org.apache.activemq.artemis.core.client.ActiveMQClientMessageBundle;
 import org.apache.activemq.artemis.core.protocol.core.CoreRemotingConnection;
 import org.apache.activemq.artemis.core.protocol.core.Packet;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ActiveMQExceptionMessage;
+import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ActiveMQExceptionMessage_V2;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.CheckFailoverMessage;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.CheckFailoverReplyMessage;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ClusterTopologyChangeMessage;
@@ -39,8 +40,8 @@ import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.Disconnect
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.DisconnectConsumerWithKillMessage;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.DisconnectMessage;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.DisconnectMessage_V2;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ActiveMQExceptionMessage_V2;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.NullResponseMessage;
+import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.NullResponseMessage_V2;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.PacketsConfirmedMessage;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.Ping;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ReattachSessionMessage;
@@ -59,6 +60,7 @@ import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionCom
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionConsumerCloseMessage;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionConsumerFlowCreditMessage;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionCreateConsumerMessage;
+import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionCreateConsumerMessage_V2;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionDeleteQueueMessage;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionExpireMessage;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionForceConsumerDelivery;
@@ -91,7 +93,6 @@ import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionXAS
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionXAStartMessage;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SubscribeClusterTopologyUpdatesMessage;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SubscribeClusterTopologyUpdatesMessageV2;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.NullResponseMessage_V2;
 
 import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.CHECK_FOR_FAILOVER;
 import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.CLUSTER_TOPOLOGY;
@@ -126,6 +127,7 @@ import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.SES
 import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.SESS_COMMIT;
 import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.SESS_CONSUMER_CLOSE;
 import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.SESS_CREATECONSUMER;
+import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.SESS_CREATECONSUMER_V2;
 import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.SESS_EXPIRED;
 import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.SESS_FLOWTOKEN;
 import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.SESS_FORCE_CONSUMER_DELIVERY;
@@ -233,6 +235,10 @@ public abstract class PacketDecoder implements Serializable {
          }
          case SESS_CREATECONSUMER: {
             packet = new SessionCreateConsumerMessage();
+            break;
+         }
+         case SESS_CREATECONSUMER_V2: {
+            packet = new SessionCreateConsumerMessage_V2();
             break;
          }
          case SESS_ACKNOWLEDGE: {

@@ -14,13 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.activemq.artemis.core.server;
+package org.apache.activemq.artemis.utils.collections;
 
-import org.apache.activemq.artemis.api.config.ActiveMQDefaultConfiguration;
+/**
+ * Extends MultiIterator, adding the ability if the underlying iterators are resettable, then its self can reset.
+ * It achieves this by going back to the first iterator, and as moves to another iterator it resets it.
+ *
+ * @param <T> type of the class of the iterator.
+ */
+public class MultiResettableIterator<T> extends MultiIteratorBase<T, ResettableIterator<T>> implements ResettableIterator<T> {
 
-public interface PriorityAware {
+   public MultiResettableIterator(ResettableIterator<T>[] iterators) {
+      super(iterators);
+   }
 
-   default int getPriority() {
-      return ActiveMQDefaultConfiguration.getDefaultConsumerPriority();
+   @Override
+   protected void moveTo(int index) {
+      super.moveTo(index);
+      if (index > -1) {
+         get(index).reset();
+      }
+   }
+
+   @Override
+   public void reset() {
+      moveTo(-1);
    }
 }

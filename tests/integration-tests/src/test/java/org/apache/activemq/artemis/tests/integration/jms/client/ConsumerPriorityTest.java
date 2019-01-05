@@ -16,8 +16,6 @@
  */
 package org.apache.activemq.artemis.tests.integration.jms.client;
 
-import org.apache.activemq.artemis.api.core.RoutingType;
-import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.jms.client.ActiveMQDestination;
 import org.apache.activemq.artemis.tests.util.JMSTestBase;
 import org.junit.Before;
@@ -38,13 +36,11 @@ import javax.jms.Topic;
  */
 public class ConsumerPriorityTest extends JMSTestBase {
 
-   private SimpleString queueName = SimpleString.toSimpleString("jms.consumer.priority.queue");
 
    @Override
    @Before
    public void setUp() throws Exception {
       super.setUp();
-      server.createQueue(queueName, RoutingType.ANYCAST, queueName, null, null, true, false, false, false, false, -1, false, false, false,true);
    }
 
 
@@ -56,24 +52,25 @@ public class ConsumerPriorityTest extends JMSTestBase {
    public void testConsumerPriorityQueueConsumerSettingUsingAddressQueueParameters() throws Exception {
       ConnectionFactory fact = getCF();
       Connection connection = fact.createConnection();
+      String queueName = getName();
 
       try {
 
          Session session = connection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
 
-         Queue queue = session.createQueue(queueName.toString());
-         Queue queue1 = session.createQueue(queueName.toString() + "?consumer-priority=3");
-         Queue queue2 = session.createQueue(queueName.toString() + "?consumer-priority=2");
-         Queue queue3 = session.createQueue(queueName.toString() + "?consumer-priority=1");
+         Queue queue = session.createQueue(queueName);
+         Queue queue1 = session.createQueue(queueName + "?consumer-priority=3");
+         Queue queue2 = session.createQueue(queueName + "?consumer-priority=2");
+         Queue queue3 = session.createQueue(queueName + "?consumer-priority=1");
 
-         assertEquals(queueName.toString(), queue.getQueueName());
+         assertEquals(queueName, queue.getQueueName());
 
          ActiveMQDestination b = (ActiveMQDestination) queue1;
-         assertEquals(Byte.valueOf("3"), b.getQueueAttributes().getConsumerPriority());
+         assertEquals(3, b.getQueueAttributes().getConsumerPriority().intValue());
          ActiveMQDestination c = (ActiveMQDestination) queue2;
-         assertEquals(Byte.valueOf("2"), c.getQueueAttributes().getConsumerPriority());
+         assertEquals(2, c.getQueueAttributes().getConsumerPriority().intValue());
          ActiveMQDestination d = (ActiveMQDestination) queue3;
-         assertEquals(Byte.valueOf("1"), d.getQueueAttributes().getConsumerPriority());
+         assertEquals(1, d.getQueueAttributes().getConsumerPriority().intValue());
 
          MessageProducer producer = session.createProducer(queue);
 
@@ -114,15 +111,16 @@ public class ConsumerPriorityTest extends JMSTestBase {
    public void testConsumerPriorityQueueConsumerRoundRobin() throws Exception {
       ConnectionFactory fact = getCF();
       Connection connection = fact.createConnection();
+      String queueName = getName();
 
       try {
 
          Session session = connection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
 
-         Queue queue = session.createQueue(queueName.toString());
-         Queue queue1 = session.createQueue(queueName.toString() + "?consumer-priority=3");
-         Queue queue2 = session.createQueue(queueName.toString() + "?consumer-priority=3");
-         Queue queue3 = session.createQueue(queueName.toString() + "?consumer-priority=1");
+         Queue queue = session.createQueue(queueName);
+         Queue queue1 = session.createQueue(queueName + "?consumer-priority=3");
+         Queue queue2 = session.createQueue(queueName + "?consumer-priority=3");
+         Queue queue3 = session.createQueue(queueName + "?consumer-priority=1");
 
 
          MessageProducer producer = session.createProducer(queue);
@@ -169,15 +167,16 @@ public class ConsumerPriorityTest extends JMSTestBase {
    public void testConsumerPriorityQueueConsumerFailover() throws Exception {
       ConnectionFactory fact = getCF();
       Connection connection = fact.createConnection();
+      String queueName = getName();
 
       try {
 
          Session session = connection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
 
-         Queue queue = session.createQueue(queueName.toString());
-         Queue queue1 = session.createQueue(queueName.toString() + "?consumer-priority=3");
-         Queue queue2 = session.createQueue(queueName.toString() + "?consumer-priority=2");
-         Queue queue3 = session.createQueue(queueName.toString() + "?consumer-priority=1");
+         Queue queue = session.createQueue(queueName);
+         Queue queue1 = session.createQueue(queueName + "?consumer-priority=3");
+         Queue queue2 = session.createQueue(queueName + "?consumer-priority=2");
+         Queue queue3 = session.createQueue(queueName + "?consumer-priority=1");
 
 
          MessageProducer producer = session.createProducer(queue);
@@ -233,7 +232,7 @@ public class ConsumerPriorityTest extends JMSTestBase {
    public void testConsumerPriorityTopicSharedConsumerFailover() throws Exception {
       ConnectionFactory fact = getCF();
       Connection connection = fact.createConnection();
-      String topicName = "mytopic";
+      String topicName = getName();
       try {
 
          Session session = connection.createSession(false, Session.CLIENT_ACKNOWLEDGE);

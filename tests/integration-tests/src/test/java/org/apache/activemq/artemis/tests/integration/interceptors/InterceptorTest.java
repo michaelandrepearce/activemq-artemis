@@ -132,7 +132,7 @@ public class InterceptorTest extends ActiveMQTestBase {
 
       @Override
       public boolean intercept(final Packet packet, final RemotingConnection connection) throws ActiveMQException {
-         if (packet.getType() == PacketImpl.SESS_CREATECONSUMER) {
+         if (packet.getType() == PacketImpl.SESS_CREATECONSUMER  || packet.getType() == PacketImpl.SESS_CREATECONSUMER_V2) {
             String userName = getUsername(packet, connection);
             SessionCreateConsumerMessage createQueue = (SessionCreateConsumerMessage) packet;
             createQueue.setFilterString(new SimpleString("userName='" + userName + "'"));

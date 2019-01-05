@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,23 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.activemq.artemis.core.server.impl;
+package org.apache.activemq.artemis.utils.collections;
 
-import org.apache.activemq.artemis.core.PriorityAware;
-import org.apache.activemq.artemis.utils.collections.ResettableIterator;
+import java.util.Iterator;
 
-import java.util.Set;
+public interface ResettableIterator<E> extends Iterator<E> {
 
-public interface QueueConsumers<T extends PriorityAware> extends Iterable<T>, ResettableIterator<T> {
-
-   Set<Integer> getPriorites();
-
-   boolean add(T t);
-
-   boolean remove(T t);
-
-   int size();
-
-   boolean isEmpty();
-
+   /**
+    * Resets the iterator so you can re-iterate over all elements.
+    */
+   void reset();
 }
