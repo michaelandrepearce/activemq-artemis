@@ -34,4 +34,8 @@ public interface Filter {
    boolean match(Message message);
 
    SimpleString getFilterString();
+
+   static SimpleString toFilterString(Filter filter) {
+      return filter == null ? null : filter.getFilterString();
+   }
 }

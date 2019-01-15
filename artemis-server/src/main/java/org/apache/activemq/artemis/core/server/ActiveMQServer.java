@@ -62,6 +62,7 @@ import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerCriticalPlug
 import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerMessagePlugin;
 import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerQueuePlugin;
 import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerSessionPlugin;
+import org.apache.activemq.artemis.core.server.federation.FederationManager;
 import org.apache.activemq.artemis.core.server.reload.ReloadManager;
 import org.apache.activemq.artemis.core.settings.HierarchicalRepository;
 import org.apache.activemq.artemis.core.settings.impl.AddressSettings;
@@ -499,6 +500,8 @@ public interface ActiveMQServer extends ServiceComponent {
    GroupingHandler getGroupingHandler();
 
    ReplicationManager getReplicationManager();
+
+   FederationManager getFederationManager();
 
    void deployDivert(DivertConfiguration config) throws Exception;
 

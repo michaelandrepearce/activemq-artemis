@@ -162,6 +162,7 @@ import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerCriticalPlug
 import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerMessagePlugin;
 import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerQueuePlugin;
 import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerSessionPlugin;
+import org.apache.activemq.artemis.core.server.federation.FederationManager;
 import org.apache.activemq.artemis.core.server.reload.ReloadCallback;
 import org.apache.activemq.artemis.core.server.reload.ReloadManager;
 import org.apache.activemq.artemis.core.server.reload.ReloadManagerImpl;
@@ -336,6 +337,8 @@ public class ActiveMQServerImpl implements ActiveMQServer {
    private final List<ActiveMQComponent> externalComponents = new ArrayList<>();
 
    private final ConcurrentMap<String, AtomicInteger> connectedClientIds = new ConcurrentHashMap();
+
+   private final FederationManager federationManager = new FederationManager(this);
 
    private final ActiveMQComponent networkCheckMonitor = new ActiveMQComponent() {
       @Override
@@ -1955,10 +1958,6 @@ public class ActiveMQServerImpl implements ActiveMQServer {
          return;
       }
 
-      if (hasBrokerQueuePlugins()) {
-         callBrokerQueuePlugins(plugin -> plugin.beforeDestroyQueue(queueName, session, checkConsumerCount,
-                 removeConsumers, autoDeleteAddress));
-      }
 
       addressSettingsRepository.clearCache();
 
@@ -1971,6 +1970,12 @@ public class ActiveMQServerImpl implements ActiveMQServer {
       SimpleString address = binding.getAddress();
 
       Queue queue = (Queue) binding.getBindable();
+
+      if (hasBrokerQueuePlugins()) {
+         callBrokerQueuePlugins(plugin -> plugin.beforeDestroyQueue(queueName, session, checkConsumerCount,
+               removeConsumers, autoDeleteAddress));
+      }
+
 
       if (session != null) {
 
@@ -2296,6 +2301,12 @@ public class ActiveMQServerImpl implements ActiveMQServer {
    public ConnectorsService getConnectorsService() {
       return connectorsService;
    }
+
+   @Override
+   public FederationManager getFederationManager() {
+      return federationManager;
+   }
+
 
    @Override
    public void deployDivert(DivertConfiguration config) throws Exception {
