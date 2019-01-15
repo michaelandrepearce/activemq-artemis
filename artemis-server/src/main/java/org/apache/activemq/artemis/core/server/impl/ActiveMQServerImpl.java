@@ -162,6 +162,7 @@ import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerCriticalPlug
 import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerMessagePlugin;
 import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerQueuePlugin;
 import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerSessionPlugin;
+import org.apache.activemq.artemis.core.server.plugin.impl.LinkManager;
 import org.apache.activemq.artemis.core.server.reload.ReloadCallback;
 import org.apache.activemq.artemis.core.server.reload.ReloadManager;
 import org.apache.activemq.artemis.core.server.reload.ReloadManagerImpl;
@@ -336,6 +337,8 @@ public class ActiveMQServerImpl implements ActiveMQServer {
    private final List<ActiveMQComponent> externalComponents = new ArrayList<>();
 
    private final ConcurrentMap<String, AtomicInteger> connectedClientIds = new ConcurrentHashMap();
+
+   private final LinkManager linkManager = new LinkManager();
 
    private final ActiveMQComponent networkCheckMonitor = new ActiveMQComponent() {
       @Override
@@ -2289,6 +2292,12 @@ public class ActiveMQServerImpl implements ActiveMQServer {
    public ConnectorsService getConnectorsService() {
       return connectorsService;
    }
+
+   @Override
+   public LinkManager getLinkManager() {
+      return linkManager;
+   }
+
 
    @Override
    public void deployDivert(DivertConfiguration config) throws Exception {

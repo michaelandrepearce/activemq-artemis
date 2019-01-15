@@ -31,5 +31,5 @@ public interface MessageHandler {
     *
     * @param message a message
     */
-   void onMessage(ClientMessage message);
+   void onMessage(ClientMessage message) throws Exception;
 }
