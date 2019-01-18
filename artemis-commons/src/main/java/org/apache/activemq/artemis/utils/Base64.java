@@ -10,6 +10,7 @@
  */
 package org.apache.activemq.artemis.utils;
 
+import java.io.Closeable;
 import org.apache.activemq.artemis.logs.ActiveMQUtilLogger;
 import org.jboss.logging.Logger;
 
@@ -547,22 +548,10 @@ public class Base64 {
          ActiveMQUtilLogger.LOGGER.failedToSerializeObject(e);
          return null;
       } finally {
-         try {
-            oos.close();
-         } catch (Exception e) {
-         }
-         try {
-            gzos.close();
-         } catch (Exception e) {
-         }
-         try {
-            b64os.close();
-         } catch (Exception e) {
-         }
-         try {
-            baos.close();
-         } catch (Exception e) {
-         }
+         close(oos);
+         close(gzos);
+         close(b64os);
+         close(baos);
       } // end finally
 
       // Return value according to relevant encoding.
@@ -660,23 +649,13 @@ public class Base64 {
             gzos = new java.util.zip.GZIPOutputStream(b64os);
 
             gzos.write(source, off, len);
-            gzos.close();
          } catch (java.io.IOException e) {
             ActiveMQUtilLogger.LOGGER.failedToEncodeByteArrayToBase64Notation(e);
             return null;
          } finally {
-            try {
-               gzos.close();
-            } catch (Exception e) {
-            }
-            try {
-               b64os.close();
-            } catch (Exception e) {
-            }
-            try {
-               baos.close();
-            } catch (Exception e) {
-            }
+            close(gzos);
+            close(b64os);
+            close(baos);
          } // end finally
 
          // Return value according to relevant encoding.
@@ -909,18 +888,9 @@ public class Base64 {
             } catch (java.io.IOException e) {
                // Just return originally-decoded bytes
             } finally {
-               try {
-                  baos.close();
-               } catch (Exception e) {
-               }
-               try {
-                  gzis.close();
-               } catch (Exception e) {
-               }
-               try {
-                  bais.close();
-               } catch (Exception e) {
-               }
+               close(baos);
+               close(gzis);
+               close(bais);
             } // end finally
 
          } // end if: gzipped
@@ -954,14 +924,8 @@ public class Base64 {
          ActiveMQUtilLogger.LOGGER.failedToDeserializeObject(e);
          obj = null;
       } finally {
-         try {
-            bais.close();
-         } catch (Exception e) {
-         }
-         try {
-            ois.close();
-         } catch (Exception e) {
-         }
+         close(bais);
+         close(ois);
       } // end finally
 
       return obj;
@@ -986,10 +950,7 @@ public class Base64 {
 
          success = false;
       } finally {
-         try {
-            bos.close();
-         } catch (Exception e) {
-         }
+         close(bos);
       } // end finally
 
       return success;
@@ -1013,10 +974,7 @@ public class Base64 {
       } catch (java.io.IOException e) {
          success = false;
       } finally {
-         try {
-            bos.close();
-         } catch (Exception e) {
-         }
+         close(bos);
       } // end finally
 
       return success;
@@ -1062,12 +1020,7 @@ public class Base64 {
       } catch (java.io.IOException e) {
          System.err.println("Error decoding from file " + filename);
       } finally {
-         try {
-            if (bis != null) {
-               bis.close();
-            }
-         } catch (Exception e) {
-         }
+         close(bis);
       } // end finally
 
       return decodedData;
@@ -1106,10 +1059,7 @@ public class Base64 {
       } catch (java.io.IOException e) {
          System.err.println("Error encoding from file " + filename);
       } finally {
-         try {
-            bis.close();
-         } catch (Exception e) {
-         }
+         close(bis);
       } // end finally
 
       return encodedData;
@@ -1139,14 +1089,8 @@ public class Base64 {
       } catch (java.io.IOException exc) {
          exc.printStackTrace();
       } finally {
-         try {
-            in.close();
-         } catch (Exception exc) {
-         }
-         try {
-            out.close();
-         } catch (Exception exc) {
-         }
+         close(in);
+         close(out);
       } // end finally
 
       return success;
@@ -1176,18 +1120,20 @@ public class Base64 {
       } catch (java.io.IOException exc) {
          exc.printStackTrace();
       } finally {
-         try {
-            in.close();
-         } catch (Exception exc) {
-         }
-         try {
-            out.close();
-         } catch (Exception exc) {
-         }
+         close(in);
+         close(out);
       } // end finally
 
       return success;
    } // end decodeFileToFile
+
+   private static void close(Closeable closeable) {
+      try {
+         if (closeable != null)
+            closeable.close();
+      } catch (Exception exc) {
+      }
+   }
 
    /* ********  I N N E R   C L A S S   I N P U T S T R E A M  ******** */
 
