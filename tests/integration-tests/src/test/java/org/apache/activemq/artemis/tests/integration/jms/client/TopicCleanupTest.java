@@ -19,6 +19,7 @@ package org.apache.activemq.artemis.tests.integration.jms.client;
 import java.util.List;
 import java.util.Map;
 
+import java.util.concurrent.CopyOnWriteArrayList;
 import javax.jms.Connection;
 import javax.jms.MessageConsumer;
 import javax.jms.MessageProducer;
@@ -136,7 +137,7 @@ public class TopicCleanupTest extends JMSTestBase {
 
          boolean foundStrayRoutingBinding = false;
          Bindings bindings = server.getPostOffice().getBindingsForAddress(new SimpleString(topic.getAddress()));
-         Map<SimpleString, List<Binding>> routingNames = ((BindingsImpl) bindings).getRoutingNameBindingMap();
+         Map<SimpleString, CopyOnWriteArrayList<Binding>> routingNames = ((BindingsImpl) bindings).getRoutingNameBindingMap();
          for (SimpleString key : routingNames.keySet()) {
             if (!key.toString().equals(topic.getAddress())) {
                foundStrayRoutingBinding = true;

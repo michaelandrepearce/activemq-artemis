@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.activemq.artemis.api.core.Message;
@@ -52,7 +53,7 @@ public final class BindingsImpl implements Bindings {
    // This is public as we use on test assertions
    public static final int MAX_GROUP_RETRY = 10;
 
-   private final ConcurrentMap<SimpleString, List<Binding>> routingNameBindingMap = new ConcurrentHashMap<>();
+   private final ConcurrentMap<SimpleString, CopyOnWriteArrayList<Binding>> routingNameBindingMap = new ConcurrentHashMap<>();
 
    private final Map<SimpleString, Integer> routingNamePositions = new ConcurrentHashMap<>();
 
@@ -64,7 +65,7 @@ public final class BindingsImpl implements Bindings {
     */
    private final Map<SimpleString, Binding> bindingsNameMap = new ConcurrentHashMap<>();
 
-   private final List<Binding> exclusiveBindings = new CopyOnWriteArrayList<>();
+   private final CopyOnWriteArraySet<Binding> exclusiveBindings = new CopyOnWriteArraySet<>();
 
    private volatile MessageLoadBalancingType messageLoadBalancingType = MessageLoadBalancingType.OFF;
 
@@ -121,21 +122,9 @@ public final class BindingsImpl implements Bindings {
          } else {
             SimpleString routingName = binding.getRoutingName();
 
-            List<Binding> bindings = routingNameBindingMap.get(routingName);
+            CopyOnWriteArrayList<Binding> bindings = routingNameBindingMap.computeIfAbsent(routingName, (r) -> new CopyOnWriteArrayList<>());
 
-            if (bindings == null) {
-               bindings = new CopyOnWriteArrayList<>();
-
-               List<Binding> oldBindings = routingNameBindingMap.putIfAbsent(routingName, bindings);
-
-               if (oldBindings != null) {
-                  bindings = oldBindings;
-               }
-            }
-
-            if (!bindings.contains(binding)) {
-               bindings.add(binding);
-            }
+            bindings.addIfAbsent(binding);
          }
 
          bindingsIdMap.put(binding.getID(), binding);
@@ -347,7 +336,7 @@ public final class BindingsImpl implements Bindings {
       // this is because if something changed in between we want to check the correct version
       int currentVersion = version.get();
 
-      for (Map.Entry<SimpleString, List<Binding>> entry : routingNameBindingMap.entrySet()) {
+      for (Map.Entry<SimpleString, CopyOnWriteArrayList<Binding>> entry : routingNameBindingMap.entrySet()) {
          SimpleString routingName = entry.getKey();
 
          List<Binding> bindings = entry.getValue();
@@ -497,7 +486,7 @@ public final class BindingsImpl implements Bindings {
                                          final GroupingHandler groupingGroupingHandler,
                                          final SimpleString groupId,
                                          final int tries) throws Exception {
-      for (Map.Entry<SimpleString, List<Binding>> entry : routingNameBindingMap.entrySet()) {
+      for (Map.Entry<SimpleString, CopyOnWriteArrayList<Binding>> entry : routingNameBindingMap.entrySet()) {
          SimpleString routingName = entry.getKey();
 
          List<Binding> bindings = entry.getValue();
@@ -594,7 +583,7 @@ public final class BindingsImpl implements Bindings {
       if (routingNameBindingMap.isEmpty()) {
          out.println("\tEMPTY!");
       }
-      for (Map.Entry<SimpleString, List<Binding>> entry : routingNameBindingMap.entrySet()) {
+      for (Map.Entry<SimpleString, CopyOnWriteArrayList<Binding>> entry : routingNameBindingMap.entrySet()) {
          out.println("\tkey=" + entry.getKey() + ", value(s):");
          for (Binding bind : entry.getValue()) {
             out.println("\t\t" + bind);
@@ -680,7 +669,7 @@ public final class BindingsImpl implements Bindings {
       return pos;
    }
 
-   public Map<SimpleString, List<Binding>> getRoutingNameBindingMap() {
+   public Map<SimpleString, CopyOnWriteArrayList<Binding>> getRoutingNameBindingMap() {
       return routingNameBindingMap;
    }
 }
