@@ -114,7 +114,7 @@ public class QueueAutoCreationTest extends JMSClientTestSupport {
    }
 
 
-   @Test(timeout = 30000)
+   @Test //(timeout = 30000)
    // QueueAutoCreationTest was created to validate auto-creation of queues
    // and this test was added to validate a regression: https://issues.apache.org/jira/browse/ARTEMIS-2238
    public void testAutoCreateOnTopic() throws Exception {
@@ -126,6 +126,36 @@ public class QueueAutoCreationTest extends JMSClientTestSupport {
       Topic topic = new ActiveMQTopic(addressName.toString());
       Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
       MessageProducer producer = session.createProducer(topic);
+      for (int i = 0; i < 10; i++) {
+         producer.send(session.createTextMessage("hello"));
+      }
+
+      Assert.assertTrue(((ActiveMQConnection)connection).containsKnownDestination(addressName));
+   }
+
+   @Test //(timeout = 30000)
+   // QueueAutoCreationTest was created to validate auto-creation of queues
+   // and this test was added to validate a regression: https://issues.apache.org/jira/browse/ARTEMIS-2238
+   public void testAutoCreateOnAddressOnly() throws Exception {
+
+      Map<String, AddressSettings> map = server.getConfiguration().getAddressesSettings();
+      if (map.size() == 0) {
+         AddressSettings as = new AddressSettings();
+         map.put("#", as);
+      }
+      Map.Entry<String, AddressSettings> entry = map.entrySet().iterator().next();
+      AddressSettings settings = entry.getValue();
+      settings.setAutoCreateQueues(true);
+      System.out.println("server cofg, isauto? " + entry.getValue().isAutoCreateQueues());
+
+      ConnectionFactory factory = new ActiveMQConnectionFactory("tcp://localhost:5672");
+      Connection connection = factory.createConnection();
+      SimpleString addressName = UUIDGenerator.getInstance().generateSimpleStringUUID();
+      System.out.println("Address is " + addressName);
+      clientSession.createAddress(addressName, RoutingType.ANYCAST, false);
+      Queue queue = new ActiveMQQueue(addressName.toString());
+      Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+      MessageProducer producer = session.createProducer(queue);
       for (int i = 0; i < 10; i++) {
          producer.send(session.createTextMessage("hello"));
       }
