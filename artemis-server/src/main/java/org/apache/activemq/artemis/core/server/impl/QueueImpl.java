@@ -20,7 +20,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -31,7 +30,6 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -96,7 +94,9 @@ import org.apache.activemq.artemis.utils.Env;
 import org.apache.activemq.artemis.utils.ReferenceCounter;
 import org.apache.activemq.artemis.utils.ReusableLatch;
 import org.apache.activemq.artemis.utils.actors.ArtemisExecutor;
+import org.apache.activemq.artemis.utils.collections.BucketMap;
 import org.apache.activemq.artemis.utils.collections.LinkedListIterator;
+import org.apache.activemq.artemis.utils.collections.NoOpMap;
 import org.apache.activemq.artemis.utils.collections.PriorityLinkedList;
 import org.apache.activemq.artemis.utils.collections.PriorityLinkedListImpl;
 import org.apache.activemq.artemis.utils.collections.SingletonIterator;
@@ -233,7 +233,11 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
 
    private final QueueConsumers<ConsumerHolder<? extends Consumer>> consumers = new QueueConsumersImpl<>();
 
-   private final Map<SimpleString, Consumer> groups = new HashMap<>();
+   private volatile boolean groupRebalance;
+
+   private volatile int groupBuckets;
+
+   private Map<SimpleString, Consumer> groups;
 
    private volatile Consumer exclusiveConsumer;
 
@@ -292,29 +296,6 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
     * to guarantee ordering will be always be correct
     */
    private final Object directDeliveryGuard = new Object();
-
-   /**
-    * For testing only
-    */
-   public List<SimpleString> getGroupsUsed() {
-      final CountDownLatch flush = new CountDownLatch(1);
-      executor.execute(new Runnable() {
-         @Override
-         public void run() {
-            flush.countDown();
-         }
-      });
-      try {
-         flush.await(10, TimeUnit.SECONDS);
-      } catch (Exception ignored) {
-      }
-
-      synchronized (this) {
-         ArrayList<SimpleString> groupsUsed = new ArrayList<>();
-         groupsUsed.addAll(groups.keySet());
-         return groupsUsed;
-      }
-   }
 
    public String debug() {
       StringWriter str = new StringWriter();
@@ -432,7 +413,7 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
                      final ArtemisExecutor executor,
                      final ActiveMQServer server,
                      final QueueFactory factory) {
-      this(id, address, name, filter, pageSubscription, user, durable, temporary, autoCreated, routingType, maxConsumers, exclusive, false, null, null, purgeOnNoConsumers, false, scheduledExecutor, postOffice, storageManager, addressSettingsRepository, executor, server, factory);
+      this(id, address, name, filter, pageSubscription, user, durable, temporary, autoCreated, routingType, maxConsumers, exclusive, null, null, false, null, null, purgeOnNoConsumers, false, scheduledExecutor, postOffice, storageManager, addressSettingsRepository, executor, server, factory);
    }
 
    public QueueImpl(final long id,
@@ -447,6 +428,8 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
                      final RoutingType routingType,
                      final Integer maxConsumers,
                      final Boolean exclusive,
+                     final Boolean groupRebalance,
+                     final Integer groupBuckets,
                      final Boolean nonDestructive,
                      final Integer consumersBeforeDispatch,
                      final Long delayBeforeDispatch,
@@ -492,6 +475,12 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
       this.consumersBeforeDispatch = consumersBeforeDispatch == null ? ActiveMQDefaultConfiguration.getDefaultConsumersBeforeDispatch() : consumersBeforeDispatch;
 
       this.delayBeforeDispatch = delayBeforeDispatch == null ? ActiveMQDefaultConfiguration.getDefaultDelayBeforeDispatch() : delayBeforeDispatch;
+
+      this.groupRebalance = groupRebalance == null ? ActiveMQDefaultConfiguration.getDefaultGroupRebalance() : groupRebalance;
+
+      this.groupBuckets = groupBuckets == null ? ActiveMQDefaultConfiguration.getDefaultGroupBuckets() : groupBuckets;
+
+      this.groups = groupMap(this.groupBuckets);
 
       this.configurationManaged = configurationManaged;
 
@@ -697,6 +686,29 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
    @Override
    public synchronized void setMaxConsumer(int maxConsumers) {
       this.maxConsumers = maxConsumers;
+   }
+
+   @Override
+   public int getGroupBuckets() {
+      return groupBuckets;
+   }
+
+   @Override
+   public synchronized void setGroupBuckets(int groupBuckets) {
+      if (this.groupBuckets != groupBuckets) {
+         this.groups = groupMap(groupBuckets);
+         this.groupBuckets = groupBuckets;
+      }
+   }
+
+   @Override
+   public boolean isGroupRebalance() {
+      return groupRebalance;
+   }
+
+   @Override
+   public synchronized void setGroupRebalance(boolean groupRebalance) {
+      this.groupRebalance = groupRebalance;
    }
 
    @Override
@@ -1052,6 +1064,10 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
                }
             }
 
+            if (groupRebalance) {
+               groups.clear();
+            }
+
             if (refCountForConsumers != null) {
                refCountForConsumers.increment();
             }
@@ -1096,25 +1112,8 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
                exclusiveConsumer = null;
             }
 
-            LinkedList<SimpleString> groupsToRemove = null;
+            groups.values().removeIf(consumer::equals);
 
-            for (SimpleString groupID : groups.keySet()) {
-               if (consumer == groups.get(groupID)) {
-                  if (groupsToRemove == null) {
-                     groupsToRemove = new LinkedList<>();
-                  }
-                  groupsToRemove.add(groupID);
-               }
-            }
-
-            // We use an auxiliary List here to avoid concurrent modification exceptions on the keySet
-            // while the iteration is being done.
-            // Since that's a simple HashMap there's no Iterator's support with a remove operation
-            if (groupsToRemove != null) {
-               for (SimpleString groupID : groupsToRemove) {
-                  groups.remove(groupID);
-               }
-            }
 
             if (refCountForConsumers != null) {
                refCountForConsumers.decrement();
@@ -2601,7 +2600,7 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
    }
 
    private SimpleString extractGroupID(MessageReference ref) {
-      if (internalQueue) {
+      if (internalQueue || exclusive || groupBuckets == 0) {
          return null;
       } else {
          try {
@@ -3345,6 +3344,16 @@ public class QueueImpl extends CriticalComponentImpl implements Queue {
          });
       }
 
+   }
+
+   public static Map<SimpleString, Consumer> groupMap(int groupBuckets) {
+      if (groupBuckets == -1) {
+         return new HashMap<>();
+      } else if (groupBuckets == 0) {
+         return new NoOpMap<>();
+      } else {
+         return new BucketMap<>(groupBuckets);
+      }
    }
 
    // Inner classes
