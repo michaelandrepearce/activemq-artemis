@@ -1,28 +1,39 @@
 package org.apache.activemq.artemis.core.server.federation.queue;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.apache.activemq.artemis.api.core.SimpleString;
 
 public class FederatedQueueConfig {
 
-   private String name;
-   private String connectionName;
-   private String queueName;
+   private boolean includeFederated;
+   private Set<String> includes;
+   private Set<String> excludes;
 
-   public FederatedQueueConfig(String name, String connectionName, String queueName) {
-      this.name = name;
-      this.connectionName = connectionName;
-      this.queueName = queueName;
+   public FederatedQueueConfig() {
+      this(null, null);
    }
 
-   public String getQueueName() {
-      return queueName;
+   public FederatedQueueConfig(Set<String> includes, Set<String> excludes) {
+      this.includes = includes == null ? new HashSet<>() : includes;
+      this.excludes = excludes == null ? new HashSet<>() : excludes;
    }
 
-   public String getName() {
-      return name;
+   public Set<String> getIncludes() {
+      return includes;
    }
 
-   public String getConnectionName() {
-      return connectionName;
+   public Set<String> getExcludes() {
+      return excludes;
+   }
+
+   public boolean isIncludeFederated() {
+      return includeFederated;
+   }
+
+   public void setIncludeFederated(boolean includeFederated) {
+      this.includeFederated = includeFederated;
    }
 }

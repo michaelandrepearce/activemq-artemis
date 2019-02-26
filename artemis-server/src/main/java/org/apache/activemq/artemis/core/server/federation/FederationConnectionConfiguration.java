@@ -1,20 +1,26 @@
 package org.apache.activemq.artemis.core.server.federation;
 
 import java.util.List;
+import org.apache.activemq.artemis.core.server.federation.address.FederatedAddressConfig;
+import org.apache.activemq.artemis.core.server.federation.queue.FederatedQueueConfig;
 
 public class FederationConnectionConfiguration {
 
-    private String name;
+    private final String name;
     private boolean isHA;
     private String discoveryGroupName;
     private List<String> staticConnectors;
 
-    public String getName() {
-        return name;
+    private FederatedAddressConfig addressConfig;
+
+    private FederatedQueueConfig queueConfig;
+
+    public FederationConnectionConfiguration(String name) {
+        this.name = name;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public String getName() {
+        return name;
     }
 
     public String getDiscoveryGroupName() {
@@ -39,5 +45,21 @@ public class FederationConnectionConfiguration {
 
     public void setHA(boolean HA) {
         isHA = HA;
+    }
+
+    public FederatedAddressConfig getAddressConfig() {
+        return addressConfig;
+    }
+
+    public void setAddressConfig(FederatedAddressConfig addressConfig) {
+        this.addressConfig = addressConfig;
+    }
+
+    public FederatedQueueConfig getQueueConfig() {
+        return queueConfig;
+    }
+
+    public void setQueueConfig(FederatedQueueConfig queueConfig) {
+        this.queueConfig = queueConfig;
     }
 }

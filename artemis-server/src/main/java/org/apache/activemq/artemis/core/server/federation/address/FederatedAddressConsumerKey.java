@@ -5,11 +5,11 @@ import java.util.Map;
 import java.util.Objects;
 import org.apache.activemq.artemis.api.core.RoutingType;
 import org.apache.activemq.artemis.api.core.SimpleString;
-import org.apache.activemq.artemis.core.server.federation.RemoteConsumerKey;
+import org.apache.activemq.artemis.core.server.federation.FederatedConsumerKey;
 import org.apache.activemq.artemis.utils.CompositeAddress;
 import org.apache.commons.lang3.text.StrSubstitutor;
 
-public class FederatedAddressConsumerKey implements RemoteConsumerKey {
+public class FederatedAddressConsumerKey implements FederatedConsumerKey {
 
    private final SimpleString connectionName;
    private final SimpleString address;

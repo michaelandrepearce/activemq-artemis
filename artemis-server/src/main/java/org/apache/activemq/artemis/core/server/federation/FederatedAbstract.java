@@ -19,7 +19,9 @@ package org.apache.activemq.artemis.core.server.federation;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.activemq.artemis.core.config.WildcardConfiguration;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
+import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerBasePlugin;
 import org.apache.activemq.artemis.core.server.transformer.Transformer;
 
 /**
@@ -33,34 +35,55 @@ import org.apache.activemq.artemis.core.server.transformer.Transformer;
  * LOG_INTERNAL_EVENTS - critical failures, bridge deployments, queue creation/destroyed, message expired
  */
 
-public class FederatedAbstract {
+public abstract class FederatedAbstract implements ActiveMQServerBasePlugin {
 
+   private static final WildcardConfiguration DEFAULT_WILDCARD_CONFIGURATION = new WildcardConfiguration();
    protected ActiveMQServer server;
    protected FederationConnection connection;
-   protected RemoteQueueManager remoteQueueManager;
-   protected final Map<RemoteConsumerKey, RemoteQueueConsumer> remoteQueueConsumers = new HashMap<>();
+   protected FederatedQueueManager remoteQueueManager;
+   protected WildcardConfiguration wildcardConfiguration;
+   protected final Map<FederatedConsumerKey, FederatedQueueConsumer> remoteQueueConsumers = new HashMap<>();
 
    public FederatedAbstract(ActiveMQServer server, FederationConnection federationConnection) {
       this.server = server;
       this.connection = federationConnection;
-      this.remoteQueueManager = new RemoteQueueManager(server, connection);
+      this.remoteQueueManager = new FederatedQueueManager(server, connection);
+      this.wildcardConfiguration = server.getConfiguration().getWildcardConfiguration() == null ? DEFAULT_WILDCARD_CONFIGURATION : server.getConfiguration().getWildcardConfiguration();
+   }
+
+   /**
+    * The plugin has been registered with the server
+    *
+    * @param server The ActiveMQServer the plugin has been registered to
+    */
+   public void registered(ActiveMQServer server) {
+      start();
    }
 
    /**
     * The plugin has been unregistered with the server
+    *
+    * @param server The ActiveMQServer the plugin has been unregistered to
     */
+   @Override
+   public void unregistered(ActiveMQServer server) {
+      stop();
+   }
+
    public void stop() {
-      for(RemoteQueueConsumer remoteQueueConsumer : remoteQueueConsumers.values()) {
+      for(FederatedQueueConsumer remoteQueueConsumer : remoteQueueConsumers.values()) {
          remoteQueueConsumer.close();
       }
       remoteQueueConsumers.clear();
    }
 
+   public abstract void start();
 
-   public synchronized void createConsumer(RemoteConsumerKey key, Transformer transformer) {
-      RemoteQueueConsumer remoteQueueConsumer = remoteQueueConsumers.get(key);
+
+   public synchronized void createRemoteConsumer(FederatedConsumerKey key, Transformer transformer) {
+      FederatedQueueConsumer remoteQueueConsumer = remoteQueueConsumers.get(key);
       if (remoteQueueConsumer == null) {
-         remoteQueueConsumer = new RemoteQueueConsumer(server, transformer, key, connection);
+         remoteQueueConsumer = new FederatedQueueConsumer(server, transformer, key, connection);
          remoteQueueConsumer.start();
          remoteQueueConsumers.put(key, remoteQueueConsumer);
       }
@@ -68,8 +91,8 @@ public class FederatedAbstract {
    }
 
 
-   public synchronized void removeConsumer(RemoteConsumerKey key) {
-      RemoteQueueConsumer remoteQueueConsumer = remoteQueueConsumers.get(key);
+   public synchronized void removeRemoteConsumer(FederatedConsumerKey key) {
+      FederatedQueueConsumer remoteQueueConsumer = remoteQueueConsumers.get(key);
       if (remoteQueueConsumer != null) {
          if (remoteQueueConsumer.decrementCount() <= 0) {
             remoteQueueConsumer.close();

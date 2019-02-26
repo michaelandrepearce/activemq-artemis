@@ -32,7 +32,7 @@ import org.junit.Test;
 /**
  * Consumer Priority Test
  */
-public class FederatedBaseTest extends ActiveMQTestBase {
+public class FederatedTestBase extends ActiveMQTestBase {
 
    protected List<MBeanServer> mBeanServers = new ArrayList<>();
    protected List<ActiveMQServer> servers = new ArrayList<>();

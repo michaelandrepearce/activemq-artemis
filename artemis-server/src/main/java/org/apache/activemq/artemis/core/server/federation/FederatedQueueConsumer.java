@@ -10,10 +10,11 @@ import org.apache.activemq.artemis.api.core.client.*;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.transformer.Transformer;
 
-public class RemoteQueueConsumer implements MessageHandler {
+public class FederatedQueueConsumer implements MessageHandler {
 
+   public static final String FEDERATED_CONNECTION_NAME_PROPERTY = "federated-connection-name";
    private final ActiveMQServer server;
-   private final RemoteConsumerKey key;
+   private final FederatedConsumerKey key;
    private final Transformer transformer;
    private final FederationConnection federationConnection;
    private final AtomicInteger count = new AtomicInteger();
@@ -24,7 +25,7 @@ public class RemoteQueueConsumer implements MessageHandler {
    private ClientSession clientSession;
    private ClientConsumer clientConsumer;
 
-   public RemoteQueueConsumer(ActiveMQServer server, Transformer transformer, RemoteConsumerKey key, FederationConnection federationConnection) {
+   public FederatedQueueConsumer(ActiveMQServer server, Transformer transformer, FederatedConsumerKey key, FederationConnection federationConnection) {
       this.server = server;
       this.key = key;
       this.transformer = transformer;
@@ -72,6 +73,7 @@ public class RemoteQueueConsumer implements MessageHandler {
          if (clientConsumer == null) {
             synchronized (this) {
                this.clientSession = federationConnection.clientSessionFactory().createSession(true, true);
+               this.clientSession.addMetaData(FEDERATED_CONNECTION_NAME_PROPERTY, federationConnection.getName().toString());
                this.clientSession.start();
                if (clientSession.queueQuery(key.getQueueName()).isExists()) {
                   this.clientConsumer = clientSession.createConsumer(key.getQueueName(), key.getFilterString(), -1, false);

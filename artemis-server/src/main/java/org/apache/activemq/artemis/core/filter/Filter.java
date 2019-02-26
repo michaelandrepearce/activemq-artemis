@@ -16,8 +16,10 @@
  */
 package org.apache.activemq.artemis.core.filter;
 
+import java.util.Map;
 import org.apache.activemq.artemis.api.core.Message;
 import org.apache.activemq.artemis.api.core.SimpleString;
+import org.apache.activemq.artemis.selector.filter.Filterable;
 
 public interface Filter {
 
@@ -32,6 +34,10 @@ public interface Filter {
    String GENERIC_IGNORED_FILTER = "__AMQX=-1";
 
    boolean match(Message message);
+
+   boolean match(Map<String, String> map);
+
+   boolean match(Filterable filterable);
 
    SimpleString getFilterString();
 

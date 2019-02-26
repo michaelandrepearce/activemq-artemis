@@ -3,10 +3,10 @@ package org.apache.activemq.artemis.core.server.federation.queue;
 import java.util.Objects;
 import org.apache.activemq.artemis.api.core.RoutingType;
 import org.apache.activemq.artemis.api.core.SimpleString;
-import org.apache.activemq.artemis.core.server.federation.RemoteConsumerKey;
+import org.apache.activemq.artemis.core.server.federation.FederatedConsumerKey;
 import org.apache.activemq.artemis.utils.CompositeAddress;
 
-public class FederatedQueueConsumerKey implements RemoteConsumerKey {
+public class FederatedQueueConsumerKey implements FederatedConsumerKey {
    private final SimpleString address;
    private final SimpleString queueName;
    private final RoutingType routingType;

@@ -18,17 +18,22 @@
 package org.apache.activemq.artemis.core.server.federation.address;
 
 import java.io.Serializable;
-import org.apache.activemq.artemis.api.core.ActiveMQException;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.function.Predicate;
 import org.apache.activemq.artemis.api.core.Message;
 import org.apache.activemq.artemis.api.core.RoutingType;
 import org.apache.activemq.artemis.api.core.SimpleString;
+import org.apache.activemq.artemis.core.postoffice.QueueBinding;
 import org.apache.activemq.artemis.core.security.SecurityAuth;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.Queue;
 import org.apache.activemq.artemis.core.server.federation.FederatedAbstract;
 import org.apache.activemq.artemis.core.server.federation.FederationConnection;
-import org.apache.activemq.artemis.core.server.federation.RemoteConsumerKey;
+import org.apache.activemq.artemis.core.server.federation.FederatedConsumerKey;
 import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerQueuePlugin;
+import org.apache.activemq.artemis.core.settings.impl.Match;
 import org.apache.activemq.artemis.utils.ByteUtil;
 
 /**
@@ -43,8 +48,10 @@ import org.apache.activemq.artemis.utils.ByteUtil;
 public class FederatedAddress extends FederatedAbstract implements ActiveMQServerQueuePlugin, Serializable {
 
    public static final SimpleString HDR_HOPS = new SimpleString("_AMQ_Hops");
-   private SimpleString queueNameFormat;
-   private SimpleString filterString;
+   private final SimpleString queueNameFormat;
+   private final SimpleString filterString;
+   private final Set<Predicate<String>> includes;
+   private final Set<Predicate<String>> excludes;
 
    private final FederatedAddressConfig federatedAddressConfig;
 
@@ -53,6 +60,34 @@ public class FederatedAddress extends FederatedAbstract implements ActiveMQServe
       this.federatedAddressConfig = federatedAddressConfig;
       this.filterString =  HDR_HOPS.concat(" IS NULL OR ").concat(HDR_HOPS).concat("<").concat(Integer.toString(federatedAddressConfig.getMaxHops()));
       this.queueNameFormat = SimpleString.toSimpleString("federated.${connection}.${address}.${routeType}");
+      if (federatedAddressConfig.getIncludes().isEmpty()) {
+         includes = Collections.emptySet();
+      } else {
+         includes = new HashSet<>(federatedAddressConfig.getIncludes().size());
+         for (String include : federatedAddressConfig.getIncludes()) {
+            includes.add(new Match<>(include, null, wildcardConfiguration).getPattern().asPredicate());
+         }
+      }
+
+      if (federatedAddressConfig.getExcludes().isEmpty()) {
+         excludes = Collections.emptySet();
+      } else {
+         excludes = new HashSet<>(federatedAddressConfig.getExcludes().size());
+         for (String exclude : federatedAddressConfig.getExcludes()) {
+            excludes.add(new Match<>(exclude, null, wildcardConfiguration).getPattern().asPredicate());
+         }
+      }
+   }
+
+   @Override
+   public void start() {
+      server.getPostOffice()
+            .getAllBindings()
+            .values()
+            .stream()
+            .filter(b -> b instanceof QueueBinding)
+            .map(b -> ((QueueBinding) b).getQueue())
+            .forEach(this::createRemoteQueue);
    }
 
    /**
@@ -61,10 +96,42 @@ public class FederatedAddress extends FederatedAbstract implements ActiveMQServe
     * @param queue The newly created queue
     */
    public synchronized void afterCreateQueue(Queue queue) {
+      createRemoteQueue(queue);
+   }
+
+   private void createRemoteQueue(Queue queue) {
       if (RoutingType.MULTICAST.equals(queue.getRoutingType())) {
-         RemoteConsumerKey key = getKey(queue);
-         remoteQueueManager.createQueue(key);
-         createConsumer(key, FederatedAddress::addHop);
+         if (match(queue.getAddress().toString())) {
+            FederatedConsumerKey key = getKey(queue);
+            remoteQueueManager.createQueue(key);
+            createRemoteConsumer(key, FederatedAddress::addHop);
+         }
+      }
+   }
+
+   private boolean match(Queue queue) {
+      return RoutingType.MULTICAST.equals(queue.getRoutingType()) && match(queue.getAddress());
+   }
+
+   private boolean match(SimpleString address) {
+      return match(address.toString());
+   }
+
+   private boolean match(String address) {
+      for(Predicate<String> exclude : excludes) {
+         if (exclude.test(address)) {
+            return false;
+         }
+      }
+      if (includes.isEmpty()) {
+         return true;
+      } else {
+         for(Predicate<String> include : includes) {
+            if (include.test(address)) {
+               return true;
+            }
+         }
+         return false;
       }
    }
 
@@ -91,12 +158,13 @@ public class FederatedAddress extends FederatedAbstract implements ActiveMQServe
    @Override
    public synchronized void beforeDestroyQueue(Queue queue, final SecurityAuth session, boolean checkConsumerCount,
       boolean removeConsumers, boolean autoDeleteAddress) {
-      RemoteConsumerKey key = getKey(queue);
-      removeConsumer(key);
+      FederatedConsumerKey key = getKey(queue);
+      removeRemoteConsumer(key);
    }
 
-   private RemoteConsumerKey getKey(Queue queue) {
+   private FederatedConsumerKey getKey(Queue queue) {
       return new FederatedAddressConsumerKey(connection.getName(), queue.getAddress(), queue.getRoutingType(), queueNameFormat, filterString, federatedAddressConfig.isTemporary());
    }
+
 
 }

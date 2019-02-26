@@ -28,7 +28,7 @@ import org.junit.Test;
 /**
  * Consumer Priority Test
  */
-public class FederatedQueueTest extends FederatedBaseTest {
+public class FederatedQueueTest extends FederatedTestBase {
 
 
    @Override
@@ -48,17 +48,17 @@ public class FederatedQueueTest extends FederatedBaseTest {
    public void testMike() throws Exception {
       String queueName = "federatedQueue";
 
-      FederationConnectionConfiguration federationConnectionConfiguration = new FederationConnectionConfiguration();
-      federationConnectionConfiguration.setName("1");
+      FederationConnectionConfiguration federationConnectionConfiguration = new FederationConnectionConfiguration("nnnn");
       federationConnectionConfiguration.setStaticConnectors(Collections.singletonList("server1"));
 
-      FederatedQueueConfig federatedQueueConfig = new FederatedQueueConfig("one", "1", queueName);
+      FederatedQueueConfig federatedQueueConfig = new FederatedQueueConfig();
+      federatedQueueConfig.getIncludes().add(queueName);
+
+      federationConnectionConfiguration.setQueueConfig(federatedQueueConfig);
+
 
       FederationManager fm = getServer(0).getFederationManager();
       fm.deploy(federationConnectionConfiguration);
-
-      fm.deploy(federatedQueueConfig);
-
 
 
       ConnectionFactory cf1 = getCF(1);
