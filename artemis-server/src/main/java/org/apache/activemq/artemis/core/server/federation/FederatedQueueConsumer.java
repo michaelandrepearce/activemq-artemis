@@ -10,27 +10,32 @@ import org.apache.activemq.artemis.api.core.client.*;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.transformer.Transformer;
 
-public class FederatedQueueConsumer implements MessageHandler {
+public class FederatedQueueConsumer implements MessageHandler, SessionFailureListener {
 
    public static final String FEDERATED_CONNECTION_NAME_PROPERTY = "federated-connection-name";
    private final ActiveMQServer server;
+   private final FederationManager federationManager;
    private final FederatedConsumerKey key;
    private final Transformer transformer;
-   private final FederationConnection federationConnection;
+   private final FederationUpstream upstream;
    private final AtomicInteger count = new AtomicInteger();
    private final ScheduledExecutorService scheduledExecutorService;
    private final int intialConnectDelayMultiplier = 2;
-   private final int intialConnectDelayMax = 100;
+   private final int intialConnectDelayMax = 30;
+   private final ClientSessionCallback clientSessionCallback;
 
+   private ClientSessionFactory clientSessionFactory;
    private ClientSession clientSession;
    private ClientConsumer clientConsumer;
 
-   public FederatedQueueConsumer(ActiveMQServer server, Transformer transformer, FederatedConsumerKey key, FederationConnection federationConnection) {
+   public FederatedQueueConsumer(FederationManager federationManager, ActiveMQServer server, Transformer transformer, FederatedConsumerKey key, FederationUpstream upstream, ClientSessionCallback clientSessionCallback) {
+      this.federationManager = federationManager;
       this.server = server;
       this.key = key;
       this.transformer = transformer;
-      this.federationConnection = federationConnection;
+      this.upstream = upstream;
       this.scheduledExecutorService = server.getScheduledPool();
+      this.clientSessionCallback = clientSessionCallback;
    }
 
    public int incrementCount() {
@@ -72,9 +77,14 @@ public class FederatedQueueConsumer implements MessageHandler {
       try {
          if (clientConsumer == null) {
             synchronized (this) {
-               this.clientSession = federationConnection.clientSessionFactory().createSession(true, true);
-               this.clientSession.addMetaData(FEDERATED_CONNECTION_NAME_PROPERTY, federationConnection.getName().toString());
+               this.clientSessionFactory = upstream.getConnection().clientSessionFactory();
+               this.clientSession = clientSessionFactory.createSession(federationManager.getFederationUser(), federationManager.getFederationPassword(), false, true, true, clientSessionFactory.getServerLocator().isPreAcknowledge(), clientSessionFactory.getServerLocator().getAckBatchSize());
+               this.clientSession.addFailureListener(this);
+               this.clientSession.addMetaData(FEDERATED_CONNECTION_NAME_PROPERTY, upstream.getName().toString());
                this.clientSession.start();
+               if (clientSessionCallback != null) {
+                  clientSessionCallback.callback(clientSession);
+               }
                if (clientSession.queueQuery(key.getQueueName()).isExists()) {
                   this.clientConsumer = clientSession.createConsumer(key.getQueueName(), key.getFilterString(), -1, false);
                   this.clientConsumer.setMessageHandler(this);
@@ -85,6 +95,7 @@ public class FederatedQueueConsumer implements MessageHandler {
          }
       } catch (Exception e) {
          try {
+            clientSessionFactory.cleanup();
             disconnect();
          } catch (ActiveMQException ignored) {
          }
@@ -112,8 +123,13 @@ public class FederatedQueueConsumer implements MessageHandler {
       if (clientSession != null) {
          clientSession.close();
       }
+      if (clientSessionFactory != null) {
+         clientSessionFactory.close();
+      }
       clientConsumer = null;
       clientSession = null;
+      clientSessionFactory = null;
+
    }
 
    @Override
@@ -128,5 +144,31 @@ public class FederatedQueueConsumer implements MessageHandler {
          } catch (ActiveMQException e1) {
          }
       }
+   }
+
+   @Override
+   public void connectionFailed(ActiveMQException exception, boolean failedOver) {
+      connectionFailed(exception, failedOver, null);
+   }
+
+   @Override
+   public void connectionFailed(ActiveMQException exception, boolean failedOver, String scaleDownTargetNodeID) {
+      try {
+         clientSessionFactory.cleanup();
+         clientSessionFactory.close();
+         clientConsumer = null;
+         clientSession = null;
+         clientSessionFactory = null;
+      } catch (Throwable dontCare) {
+      }
+      start();
+   }
+
+   @Override
+   public void beforeReconnect(ActiveMQException exception) {
+   }
+
+   public interface ClientSessionCallback {
+      void callback(ClientSession clientSession) throws ActiveMQException;
    }
 }

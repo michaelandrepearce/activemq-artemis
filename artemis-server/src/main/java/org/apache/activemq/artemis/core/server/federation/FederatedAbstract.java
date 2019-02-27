@@ -21,34 +21,29 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.activemq.artemis.core.config.WildcardConfiguration;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
+import org.apache.activemq.artemis.core.server.federation.FederatedQueueConsumer.ClientSessionCallback;
 import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerBasePlugin;
 import org.apache.activemq.artemis.core.server.transformer.Transformer;
-
-/**
- * plugin to log various events within the broker, configured with the following booleans
- *
- * LOG_CONNECTION_EVENTS - connections creation/destroy
- * LOG_SESSION_EVENTS - sessions creation/close
- * LOG_CONSUMER_EVENTS - consumers creation/close
- * LOG_DELIVERING_EVENTS - messages delivered to consumer, acked by consumer
- * LOG_SENDING_EVENTS -  messaged is sent, message is routed
- * LOG_INTERNAL_EVENTS - critical failures, bridge deployments, queue creation/destroyed, message expired
- */
 
 public abstract class FederatedAbstract implements ActiveMQServerBasePlugin {
 
    private static final WildcardConfiguration DEFAULT_WILDCARD_CONFIGURATION = new WildcardConfiguration();
+   private final FederationManager federationManager;
    protected ActiveMQServer server;
-   protected FederationConnection connection;
-   protected FederatedQueueManager remoteQueueManager;
+   protected FederationUpstream upstream;
    protected WildcardConfiguration wildcardConfiguration;
    protected final Map<FederatedConsumerKey, FederatedQueueConsumer> remoteQueueConsumers = new HashMap<>();
+   private boolean started;
 
-   public FederatedAbstract(ActiveMQServer server, FederationConnection federationConnection) {
+   public FederatedAbstract(FederationManager federationManager, ActiveMQServer server, FederationUpstream upstream) {
+      this.federationManager = federationManager;
       this.server = server;
-      this.connection = federationConnection;
-      this.remoteQueueManager = new FederatedQueueManager(server, connection);
+      this.upstream = upstream;
       this.wildcardConfiguration = server.getConfiguration().getWildcardConfiguration() == null ? DEFAULT_WILDCARD_CONFIGURATION : server.getConfiguration().getWildcardConfiguration();
+   }
+
+   public FederationManager getFederationManager() {
+      return federationManager;
    }
 
    /**
@@ -70,24 +65,33 @@ public abstract class FederatedAbstract implements ActiveMQServerBasePlugin {
       stop();
    }
 
-   public void stop() {
+   public synchronized void stop() {
       for(FederatedQueueConsumer remoteQueueConsumer : remoteQueueConsumers.values()) {
          remoteQueueConsumer.close();
       }
       remoteQueueConsumers.clear();
+      started = false;
    }
 
-   public abstract void start();
+   public synchronized void start() {
+      started = true;
+   }
+
+   public boolean isStarted() {
+      return started;
+   }
 
 
-   public synchronized void createRemoteConsumer(FederatedConsumerKey key, Transformer transformer) {
-      FederatedQueueConsumer remoteQueueConsumer = remoteQueueConsumers.get(key);
-      if (remoteQueueConsumer == null) {
-         remoteQueueConsumer = new FederatedQueueConsumer(server, transformer, key, connection);
-         remoteQueueConsumer.start();
-         remoteQueueConsumers.put(key, remoteQueueConsumer);
+   public synchronized void createRemoteConsumer(FederatedConsumerKey key, Transformer transformer, ClientSessionCallback callback) {
+      if (started) {
+         FederatedQueueConsumer remoteQueueConsumer = remoteQueueConsumers.get(key);
+         if (remoteQueueConsumer == null) {
+            remoteQueueConsumer = new FederatedQueueConsumer(federationManager, server, transformer, key, upstream, callback);
+            remoteQueueConsumer.start();
+            remoteQueueConsumers.put(key, remoteQueueConsumer);
+         }
+         remoteQueueConsumer.incrementCount();
       }
-      remoteQueueConsumer.incrementCount();
    }
 
 

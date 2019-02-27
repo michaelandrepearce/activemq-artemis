@@ -1,76 +1,140 @@
 package org.apache.activemq.artemis.core.server.federation;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import org.apache.activemq.artemis.api.core.ActiveMQException;
+import org.apache.activemq.artemis.core.config.federation.*;
+import org.apache.activemq.artemis.core.server.ActiveMQComponent;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
-import org.apache.activemq.artemis.core.server.federation.address.FederatedAddress;
-import org.apache.activemq.artemis.core.server.federation.address.FederatedAddressConfig;
-import org.apache.activemq.artemis.core.server.federation.queue.FederatedQueue;
-import org.apache.activemq.artemis.core.server.federation.queue.FederatedQueueConfig;
+import org.apache.activemq.artemis.core.config.FederationConfiguration;
+import org.apache.activemq.artemis.core.server.ActiveMQServerLogger;
 
-public class FederationManager {
+public class FederationManager implements ActiveMQComponent {
 
     private final ActiveMQServer server;
 
-    private Map<String, FederationConnection> connections = new HashMap<>();
-    private Map<String, FederatedQueue> federatedQueueMap = new HashMap<>();
-    private Map<String, FederatedAddress> federatedAddressMap = new HashMap<>();
+    private Map<String, FederationUpstream> upstreams = new HashMap<>();
+    private String federationUser;
+    private String federationPassword;
+    private State state;
+
+    enum State {
+        STOPPED,
+        STOPPING,
+        /**
+         * Deployed means {@link FederationManager#deploy()} was called but
+         * {@link FederationManager#start()} was not called.
+         * <p>
+         * We need the distinction if {@link FederationManager#stop()} is called before 'start'. As
+         * otherwise we would leak locators.
+         */
+        DEPLOYED, STARTED,
+    }
+
 
     public FederationManager(final ActiveMQServer server) {
         this.server = server;
     }
 
-    public boolean deploy(FederationConnectionConfiguration federationConnectionConfiguration) throws ActiveMQException {
-        if (connections.containsKey(federationConnectionConfiguration.getName())) {
-            return false;
+    public synchronized void start() throws ActiveMQException {
+        if (state == State.STARTED) return;
+        deploy();
+        for (FederationUpstream connection : upstreams.values()) {
+            connection.start();
         }
-        FederationConnection federationConnection = new FederationConnection();
-        federationConnection.init(federationConnectionConfiguration, server.getConfiguration());
-        connections.put(federationConnectionConfiguration.getName(), federationConnection);
+        state = State.STARTED;
+    }
 
-        if (federationConnectionConfiguration.getAddressConfig() != null) {
-            deploy(federationConnectionConfiguration.getName(), federationConnectionConfiguration.getAddressConfig());
-        }
-        if (federationConnectionConfiguration.getQueueConfig() != null) {
-            deploy(federationConnectionConfiguration.getName(), federationConnectionConfiguration.getQueueConfig());
-        }
+    public synchronized void stop() {
+        if (state == State.STOPPED) return;
+        state = State.STOPPING;
 
+
+        for (FederationUpstream connection : upstreams.values()) {
+            connection.stop();
+        }
+        upstreams.clear();
+        state = State.STOPPED;
+    }
+
+    @Override
+    public boolean isStarted() {
+        return state == State.STARTED;
+    }
+
+    public synchronized void deploy() throws ActiveMQException {
+        federationUser = server.getConfiguration().getFederationUser();
+        federationPassword = server.getConfiguration().getFederationPassword();
+        for(FederationConfiguration federationConfiguration : server.getConfiguration().getFederationConfigurations()) {
+            deploy(federationConfiguration);
+        }
+        if (state != State.STARTED) {
+            state = State.DEPLOYED;
+        }
+    }
+
+    public synchronized boolean undeploy(String name) {
+        FederationUpstream federationConnection = upstreams.remove(name);
+        if (federationConnection != null) {
+            federationConnection.stop();
+        }
         return true;
     }
 
-    public FederationConnection get(String name) {
-        return connections.get(name);
-    }
 
-    public boolean deploy(String name, FederatedQueueConfig federatedQueueConfig) throws ActiveMQException {
-        if (federatedQueueMap.containsKey(name)) {
-            return false;
+
+    public synchronized boolean deploy(FederationConfiguration federationConfiguration) throws ActiveMQException {
+        Collection<FederationUpstreamConfiguration> upstreamConfigurationSet = federationConfiguration.getUpstreamConfigurations();
+        for (FederationUpstreamConfiguration upstreamConfiguration : upstreamConfigurationSet) {
+            String name = upstreamConfiguration.getName();
+            FederationUpstream upstream = upstreams.get(name);
+
+            //If connection has changed we will need to do a full undeploy and redeploy.
+            if (upstream == null) {
+                undeploy(name);
+                upstream = deploy(name, upstreamConfiguration);
+            } else if (!upstream.getConnection().getConfig().equals(upstreamConfiguration.getConnectionConfiguration())) {
+                undeploy(name);
+                upstream = deploy(name, upstreamConfiguration);
+            }
+
+            upstream.deploy(upstreamConfiguration.getPolicyRefs(), federationConfiguration.getFederationPolicyMap());
         }
-        FederatedQueue federatedQueue = new FederatedQueue(federatedQueueConfig, server, getConnection(name));
-        federatedQueueMap.put(name, federatedQueue);
-        server.registerBrokerPlugin(federatedQueue);
-        return true;
-
-    }
-
-    public boolean deploy(String name, FederatedAddressConfig federatedAddressConfig) throws ActiveMQException {
-        if (federatedAddressMap.containsKey(name)) {
-            return false;
-        }
-        FederatedAddress federatedAddress = new FederatedAddress(federatedAddressConfig, server, getConnection(name));
-        federatedAddressMap.put(name, federatedAddress);
-        server.registerBrokerPlugin(federatedAddress);
         return true;
     }
 
-    private FederationConnection getConnection(String connectionName) {
-        FederationConnection federationConnection = connections.get(connectionName);
-        if (federationConnection == null) {
-            throw new IllegalArgumentException(connectionName + " does not exist");
+    private synchronized FederationUpstream deploy(String name, FederationUpstreamConfiguration upstreamConfiguration) {
+        FederationUpstream upstream = null;
+        upstream = new FederationUpstream(server, this, name, upstreamConfiguration);
+        upstreams.put(name, upstream);
+        if (state == State.STARTED) {
+            upstream.start();
         }
-        return federationConnection;
+        return upstream;
     }
 
+    public FederationUpstream get(String name) {
+        return upstreams.get(name);
+    }
+
+
+
+    public void register(FederatedAbstract federatedAbstract) {
+        server.registerBrokerPlugin(federatedAbstract);
+    }
+
+    public void unregister(FederatedAbstract federatedAbstract) {
+        server.unRegisterBrokerPlugin(federatedAbstract);
+    }
+
+    String getFederationPassword() {
+        return federationPassword;
+    }
+
+    String getFederationUser() {
+        return federationUser;
+    }
 
 }

@@ -509,6 +509,14 @@ public final class FileConfigurationParser extends XMLConfigurationUtil {
          parseBridgeConfiguration(mfNode, config);
       }
 
+      NodeList fedNodes = e.getElementsByTagName("federation");
+
+      for (int i = 0; i < fedNodes.getLength(); i++) {
+         Element fedNode = (Element) fedNodes.item(i);
+
+         parseFederationConfiguration(fedNode, config);
+      }
+
       NodeList gaNodes = e.getElementsByTagName("grouping-handler");
 
       for (int i = 0; i < gaNodes.getLength(); i++) {
@@ -1883,7 +1891,19 @@ public final class FileConfigurationParser extends XMLConfigurationUtil {
       mainConfig.getBridgeConfigurations().add(config);
    }
 
-   private void getStaticConnectors(List<String> staticConnectorNames, Node child) {
+   private void parseFederationConfiguration(final Element fedNode, final Configuration mainConfig) throws Exception {
+      String name = fedNode.getAttribute("name");
+
+      String queueName = getString(fedNode, "queue-name", null, Validators.NOT_NULL_OR_EMPTY);
+
+      String forwardingAddress = getString(fedNode, "forwarding-address", null, Validators.NO_CHECK);
+
+      String transformerClassName = getString(fedNode, "transformer-class-name", null, Validators.NO_CHECK);
+
+
+   }
+
+      private void getStaticConnectors(List<String> staticConnectorNames, Node child) {
       NodeList children2 = ((Element) child).getElementsByTagName("connector-ref");
 
       for (int k = 0; k < children2.getLength(); k++) {

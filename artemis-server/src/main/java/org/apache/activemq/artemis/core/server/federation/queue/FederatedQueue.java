@@ -30,10 +30,8 @@ import org.apache.activemq.artemis.core.postoffice.QueueBinding;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.Queue;
 import org.apache.activemq.artemis.core.server.ServerConsumer;
-import org.apache.activemq.artemis.core.server.federation.FederatedAbstract;
-import org.apache.activemq.artemis.core.server.federation.FederationConnection;
-import org.apache.activemq.artemis.core.server.federation.FederatedConsumerKey;
-import org.apache.activemq.artemis.core.server.federation.FederatedQueueConsumer;
+import org.apache.activemq.artemis.core.server.federation.*;
+import org.apache.activemq.artemis.core.config.federation.FederationQueuePolicyConfiguration;
 import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerConsumerPlugin;
 import org.apache.activemq.artemis.core.settings.impl.Match;
 
@@ -43,24 +41,27 @@ public class FederatedQueue extends FederatedAbstract implements ActiveMQServerC
    private final Set<Predicate<String>> excludes;
    private final Filter metaDataFilter;
 
-   public FederatedQueue(FederatedQueueConfig federatedQueueConfig, ActiveMQServer server, FederationConnection federationConnection) throws ActiveMQException {
-      super(server, federationConnection);
-      String metaDataFilterString = federatedQueueConfig.isIncludeFederated() ? null : FederatedQueueConsumer.FEDERATED_CONNECTION_NAME_PROPERTY +  " IS NULL";
+   private final FederationQueuePolicyConfiguration config;
+
+   public FederatedQueue(FederationManager federationManager, FederationQueuePolicyConfiguration config, ActiveMQServer server, FederationUpstream federationUpstream) throws ActiveMQException {
+      super(federationManager, server, federationUpstream);
+      this.config = config;
+      String metaDataFilterString = config.isIncludeFederated() ? null : FederatedQueueConsumer.FEDERATED_CONNECTION_NAME_PROPERTY +  " IS NULL";
       metaDataFilter = FilterImpl.createFilter(metaDataFilterString);
-      if (federatedQueueConfig.getIncludes().isEmpty()) {
+      if (config.getIncludes().isEmpty()) {
          includes = Collections.emptySet();
       } else {
-         includes = new HashSet<>(federatedQueueConfig.getIncludes().size());
-         for (String include : federatedQueueConfig.getIncludes()) {
+         includes = new HashSet<>(config.getIncludes().size());
+         for (String include : config.getIncludes()) {
             includes.add(new Match<>(include, null, wildcardConfiguration).getPattern().asPredicate());
          }
       }
 
-      if (federatedQueueConfig.getExcludes().isEmpty()) {
+      if (config.getExcludes().isEmpty()) {
          excludes = Collections.emptySet();
       } else {
-         excludes = new HashSet<>(federatedQueueConfig.getExcludes().size());
-         for (String exclude : federatedQueueConfig.getExcludes()) {
+         excludes = new HashSet<>(config.getExcludes().size());
+         for (String exclude : config.getExcludes()) {
             excludes.add(new Match<>(exclude, null, wildcardConfiguration).getPattern().asPredicate());
          }
       }
@@ -68,6 +69,7 @@ public class FederatedQueue extends FederatedAbstract implements ActiveMQServerC
 
    @Override
    public void start() {
+      super.start();
       server.getPostOffice()
             .getAllBindings()
             .values()
@@ -86,6 +88,10 @@ public class FederatedQueue extends FederatedAbstract implements ActiveMQServerC
       createRemoteConsumer(consumer);
    }
 
+   public FederationQueuePolicyConfiguration getConfig() {
+      return config;
+   }
+
    private void createRemoteConsumer(Queue queue) {
       queue.getConsumers()
             .stream()
@@ -99,7 +105,7 @@ public class FederatedQueue extends FederatedAbstract implements ActiveMQServerC
       }
       if (match(consumer.getQueueName())) {
          FederatedConsumerKey key = getKey(consumer);
-         createRemoteConsumer(key, message -> message.setAddress(key.getFqqn()));
+         createRemoteConsumer(key, message -> message.setAddress(key.getFqqn()), null);
       }
    }
 

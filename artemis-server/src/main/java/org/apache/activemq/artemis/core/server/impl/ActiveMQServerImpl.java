@@ -142,6 +142,7 @@ import org.apache.activemq.artemis.core.server.ServiceRegistry;
 import org.apache.activemq.artemis.core.server.cluster.BackupManager;
 import org.apache.activemq.artemis.core.server.cluster.ClusterManager;
 import org.apache.activemq.artemis.core.server.cluster.ha.HAPolicy;
+import org.apache.activemq.artemis.core.config.FederationConfiguration;
 import org.apache.activemq.artemis.core.server.files.FileMoveManager;
 import org.apache.activemq.artemis.core.server.files.FileStoreMonitor;
 import org.apache.activemq.artemis.core.server.group.GroupingHandler;
@@ -338,7 +339,7 @@ public class ActiveMQServerImpl implements ActiveMQServer {
 
    private final ConcurrentMap<String, AtomicInteger> connectedClientIds = new ConcurrentHashMap();
 
-   private final FederationManager federationManager = new FederationManager(this);
+   private volatile FederationManager federationManager;
 
    private final ActiveMQComponent networkCheckMonitor = new ActiveMQComponent() {
       @Override
@@ -1030,6 +1031,7 @@ public class ActiveMQServerImpl implements ActiveMQServer {
             managementService.removeNotificationListener(groupingHandler);
             stopComponent(groupingHandler);
          }
+         stopComponent(federationManager);
          stopComponent(clusterManager);
 
          if (remotingService != null) {
@@ -2388,6 +2390,20 @@ public class ActiveMQServerImpl implements ActiveMQServer {
    }
 
    @Override
+   public void deployFederation(FederationConfiguration config) throws Exception {
+      if (federationManager != null) {
+         federationManager.deploy(config);
+      }
+   }
+
+   @Override
+   public void undeployFederation(String name) throws Exception {
+      if (federationManager != null) {
+         federationManager.undeploy(name);
+      }
+   }
+
+   @Override
    public ServerSession getSessionByID(String sessionName) {
       return sessions.get(sessionName);
    }
@@ -2589,9 +2605,13 @@ public class ActiveMQServerImpl implements ActiveMQServer {
       // This can't be created until node id is set
       clusterManager = new ClusterManager(executorFactory, this, postOffice, scheduledPool, managementService, configuration, nodeManager, haPolicy.isBackup());
 
+      federationManager = new FederationManager(this);
+
       backupManager = new BackupManager(this, executorFactory, scheduledPool, nodeManager, configuration, clusterManager);
 
       clusterManager.deploy();
+
+      federationManager.deploy();
 
       remotingService = new RemotingServiceImpl(clusterManager, configuration, this, managementService, scheduledPool, protocolManagerFactories, executorFactory.getExecutor(), serviceRegistry);
 
@@ -2710,6 +2730,8 @@ public class ActiveMQServerImpl implements ActiveMQServer {
          if (groupingHandler != null && groupingHandler instanceof LocalGroupingHandler) {
             clusterManager.start();
 
+            federationManager.start();
+
             groupingHandler.awaitBindings();
 
             remotingService.start();
@@ -2717,6 +2739,8 @@ public class ActiveMQServerImpl implements ActiveMQServer {
             remotingService.start();
 
             clusterManager.start();
+
+            federationManager.start();
          }
 
          if (nodeManager.getNodeId() == null) {
