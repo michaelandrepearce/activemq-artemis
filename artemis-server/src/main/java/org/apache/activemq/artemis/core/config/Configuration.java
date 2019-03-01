@@ -1218,26 +1218,4 @@ public interface Configuration {
     */
    List<FederationConfiguration> getFederationConfigurations();
 
-   /**
-    * Returns the cluster user for this server. <br>
-    * Default value is {@link org.apache.activemq.artemis.api.config.ActiveMQDefaultConfiguration#DEFAULT_FEDERATION_USER}.
-    */
-   String getFederationUser();
-
-   /**
-    * Sets the cluster user for this server.
-    */
-   Configuration setFederationUser(String user);
-
-   /**
-    * Returns the cluster password for this server. <br>
-    * Default value is {@link org.apache.activemq.artemis.api.config.ActiveMQDefaultConfiguration#DEFAULT_FEDERATION_PASSWORD}.
-    */
-   String getFederationPassword();
-
-   /**
-    * Sets the cluster password for this server.
-    */
-   Configuration setFederationPassword(String password);
-
 }

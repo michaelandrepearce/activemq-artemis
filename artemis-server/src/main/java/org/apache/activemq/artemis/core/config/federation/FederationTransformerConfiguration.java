@@ -16,50 +16,39 @@
  */
 package org.apache.activemq.artemis.core.config.federation;
 
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.Objects;
-import java.util.Set;
+import org.apache.activemq.artemis.core.config.TransformerConfiguration;
 
-public class FederationPolicySet implements FederationPolicy<FederationPolicySet> {
+public class FederationTransformerConfiguration {
 
    private String name;
-   private Set<String> policyRefs = new HashSet<>();
+
+   private TransformerConfiguration transformerConfiguration;
+
+   public FederationTransformerConfiguration(String name, TransformerConfiguration transformerConfiguration) {
+      this.name = name;
+      this.transformerConfiguration = transformerConfiguration;
+   }
 
    public String getName() {
       return name;
    }
 
-   public FederationPolicySet setName(String name) {
-      this.name = name;
-      return this;
-   }
-
-   public Set<String> getPolicyRefs() {
-      return policyRefs;
-   }
-
-   public FederationPolicySet addPolicyRef(String name) {
-      policyRefs.add(name);
-      return this;
-   }
-
-   public FederationPolicySet addPolicyRefs(Collection<String> name) {
-      policyRefs.addAll(name);
-      return this;
+   public TransformerConfiguration getTransformerConfiguration() {
+      return transformerConfiguration;
    }
 
    @Override
    public boolean equals(Object o) {
       if (this == o) return true;
-      if (!(o instanceof FederationPolicySet)) return false;
-      FederationPolicySet that = (FederationPolicySet) o;
+      if (!(o instanceof FederationTransformerConfiguration)) return false;
+      FederationTransformerConfiguration that = (FederationTransformerConfiguration) o;
       return Objects.equals(name, that.name) &&
-            Objects.equals(policyRefs, that.policyRefs);
+            Objects.equals(transformerConfiguration, that.transformerConfiguration);
    }
 
    @Override
    public int hashCode() {
-      return Objects.hash(name, policyRefs);
+      return Objects.hash(name, transformerConfiguration);
    }
 }

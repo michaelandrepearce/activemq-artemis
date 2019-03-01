@@ -20,6 +20,7 @@ package org.apache.activemq.artemis.core.server.federation;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.activemq.artemis.core.config.WildcardConfiguration;
+import org.apache.activemq.artemis.core.config.federation.FederationTransformerConfiguration;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.federation.FederatedQueueConsumer.ClientSessionCallback;
 import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerBasePlugin;
@@ -28,22 +29,18 @@ import org.apache.activemq.artemis.core.server.transformer.Transformer;
 public abstract class FederatedAbstract implements ActiveMQServerBasePlugin {
 
    private static final WildcardConfiguration DEFAULT_WILDCARD_CONFIGURATION = new WildcardConfiguration();
-   private final FederationManager federationManager;
+   protected final Federation federation;
    protected ActiveMQServer server;
    protected FederationUpstream upstream;
    protected WildcardConfiguration wildcardConfiguration;
    protected final Map<FederatedConsumerKey, FederatedQueueConsumer> remoteQueueConsumers = new HashMap<>();
    private boolean started;
 
-   public FederatedAbstract(FederationManager federationManager, ActiveMQServer server, FederationUpstream upstream) {
-      this.federationManager = federationManager;
+   public FederatedAbstract(Federation federation, ActiveMQServer server, FederationUpstream upstream) {
+      this.federation = federation;
       this.server = server;
       this.upstream = upstream;
       this.wildcardConfiguration = server.getConfiguration().getWildcardConfiguration() == null ? DEFAULT_WILDCARD_CONFIGURATION : server.getConfiguration().getWildcardConfiguration();
-   }
-
-   public FederationManager getFederationManager() {
-      return federationManager;
    }
 
    /**
@@ -81,12 +78,32 @@ public abstract class FederatedAbstract implements ActiveMQServerBasePlugin {
       return started;
    }
 
+   protected Transformer mergeTransformers(Transformer left, Transformer right) {
+      if (left == null) {
+         return right;
+      } else if (right == null) {
+         return left;
+      } else {
+         return (m) -> left.transform(right.transform(m));
+      }
+   }
+
+   protected Transformer getTransformer(String transformerRef) {
+      Transformer transformer = null;
+      if (transformerRef != null) {
+         FederationTransformerConfiguration federationTransformerConfiguration = federation.getConfig().getTransformerConfigurationMap().get(transformerRef);
+         if (federationTransformerConfiguration != null) {
+            transformer = server.getServiceRegistry().getFederationTransformer(federationTransformerConfiguration.getName(), federationTransformerConfiguration.getTransformerConfiguration());
+         }
+      }
+      return transformer;
+   }
 
    public synchronized void createRemoteConsumer(FederatedConsumerKey key, Transformer transformer, ClientSessionCallback callback) {
       if (started) {
          FederatedQueueConsumer remoteQueueConsumer = remoteQueueConsumers.get(key);
          if (remoteQueueConsumer == null) {
-            remoteQueueConsumer = new FederatedQueueConsumer(federationManager, server, transformer, key, upstream, callback);
+            remoteQueueConsumer = new FederatedQueueConsumer(federation, server, transformer, key, upstream, callback);
             remoteQueueConsumer.start();
             remoteQueueConsumers.put(key, remoteQueueConsumer);
          }

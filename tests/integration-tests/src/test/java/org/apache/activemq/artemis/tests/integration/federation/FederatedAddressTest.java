@@ -17,10 +17,16 @@
 package org.apache.activemq.artemis.tests.integration.federation;
 
 import java.util.Collections;
-import javax.jms.*;
+import javax.jms.Connection;
+import javax.jms.ConnectionFactory;
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.MessageConsumer;
+import javax.jms.MessageProducer;
+import javax.jms.Session;
+import javax.jms.Topic;
 import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.core.config.FederationConfiguration;
-import org.apache.activemq.artemis.core.config.federation.FederationQueuePolicyConfiguration;
 import org.apache.activemq.artemis.core.config.federation.FederationUpstreamConfiguration;
 import org.apache.activemq.artemis.core.config.federation.FederationAddressPolicyConfiguration;
 import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
@@ -29,7 +35,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Consumer Priority Test
+ * Federated Address Test
  */
 public class FederatedAddressTest extends FederatedTestBase {
 
@@ -269,16 +275,17 @@ public class FederatedAddressTest extends FederatedTestBase {
       FederationUpstreamConfiguration upstreamConfiguration = new FederationUpstreamConfiguration();
       upstreamConfiguration.setName(connector);
       upstreamConfiguration.getConnectionConfiguration().setStaticConnectors(Collections.singletonList(connector));
-      upstreamConfiguration.getConnectionConfiguration().setCircuitBreakTimeout(-1);
+      upstreamConfiguration.getConnectionConfiguration().setCircuitBreakerTimeout(-1);
       upstreamConfiguration.addPolicyRef("AddressPolicy" + address);
 
 
       FederationAddressPolicyConfiguration addressPolicyConfiguration = new FederationAddressPolicyConfiguration();
       addressPolicyConfiguration.setName( "AddressPolicy" + address);
-      addressPolicyConfiguration.addInclude(address);
+      addressPolicyConfiguration.addInclude(new FederationAddressPolicyConfiguration.Matcher().setAddressMatch(address));
       addressPolicyConfiguration.setMaxHops(1);
 
       FederationConfiguration federationConfiguration = new FederationConfiguration();
+      federationConfiguration.setName("default");
       federationConfiguration.addUpstreamConfiguration(upstreamConfiguration);
       federationConfiguration.addFederationPolicy(addressPolicyConfiguration);
 

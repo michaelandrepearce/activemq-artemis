@@ -1,23 +1,35 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.activemq.artemis.core.server.federation;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
+import java.util.Objects;
 import org.apache.activemq.artemis.api.core.ActiveMQException;
-import org.apache.activemq.artemis.core.config.federation.*;
 import org.apache.activemq.artemis.core.server.ActiveMQComponent;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.config.FederationConfiguration;
-import org.apache.activemq.artemis.core.server.ActiveMQServerLogger;
 
 public class FederationManager implements ActiveMQComponent {
 
     private final ActiveMQServer server;
 
-    private Map<String, FederationUpstream> upstreams = new HashMap<>();
-    private String federationUser;
-    private String federationPassword;
+    private Map<String, Federation> federations = new HashMap<>();
     private State state;
 
     enum State {
@@ -41,8 +53,8 @@ public class FederationManager implements ActiveMQComponent {
     public synchronized void start() throws ActiveMQException {
         if (state == State.STARTED) return;
         deploy();
-        for (FederationUpstream connection : upstreams.values()) {
-            connection.start();
+        for (Federation federation : federations.values()) {
+            federation.start();
         }
         state = State.STARTED;
     }
@@ -52,10 +64,10 @@ public class FederationManager implements ActiveMQComponent {
         state = State.STOPPING;
 
 
-        for (FederationUpstream connection : upstreams.values()) {
-            connection.stop();
+        for (Federation federation : federations.values()) {
+            federation.stop();
         }
-        upstreams.clear();
+        federations.clear();
         state = State.STOPPED;
     }
 
@@ -65,8 +77,6 @@ public class FederationManager implements ActiveMQComponent {
     }
 
     public synchronized void deploy() throws ActiveMQException {
-        federationUser = server.getConfiguration().getFederationUser();
-        federationPassword = server.getConfiguration().getFederationPassword();
         for(FederationConfiguration federationConfiguration : server.getConfiguration().getFederationConfigurations()) {
             deploy(federationConfiguration);
         }
@@ -76,9 +86,9 @@ public class FederationManager implements ActiveMQComponent {
     }
 
     public synchronized boolean undeploy(String name) {
-        FederationUpstream federationConnection = upstreams.remove(name);
-        if (federationConnection != null) {
-            federationConnection.stop();
+        Federation federation = federations.remove(name);
+        if (federation != null) {
+            federation.stop();
         }
         return true;
     }
@@ -86,37 +96,28 @@ public class FederationManager implements ActiveMQComponent {
 
 
     public synchronized boolean deploy(FederationConfiguration federationConfiguration) throws ActiveMQException {
-        Collection<FederationUpstreamConfiguration> upstreamConfigurationSet = federationConfiguration.getUpstreamConfigurations();
-        for (FederationUpstreamConfiguration upstreamConfiguration : upstreamConfigurationSet) {
-            String name = upstreamConfiguration.getName();
-            FederationUpstream upstream = upstreams.get(name);
-
-            //If connection has changed we will need to do a full undeploy and redeploy.
-            if (upstream == null) {
-                undeploy(name);
-                upstream = deploy(name, upstreamConfiguration);
-            } else if (!upstream.getConnection().getConfig().equals(upstreamConfiguration.getConnectionConfiguration())) {
-                undeploy(name);
-                upstream = deploy(name, upstreamConfiguration);
-            }
-
-            upstream.deploy(upstreamConfiguration.getPolicyRefs(), federationConfiguration.getFederationPolicyMap());
+        Federation federation = federations.get(federationConfiguration.getName());
+        if (federation == null) {
+            federation = newFederation(federationConfiguration);
+        } else if (!Objects.equals(federation.getConfig().getCredentials(), federationConfiguration.getCredentials())) {
+            undeploy(federationConfiguration.getName());
+            federation = newFederation(federationConfiguration);
         }
+        federation.deploy();
         return true;
     }
 
-    private synchronized FederationUpstream deploy(String name, FederationUpstreamConfiguration upstreamConfiguration) {
-        FederationUpstream upstream = null;
-        upstream = new FederationUpstream(server, this, name, upstreamConfiguration);
-        upstreams.put(name, upstream);
+    private synchronized Federation newFederation(FederationConfiguration federationConfiguration) throws ActiveMQException {
+        Federation federation = new Federation(server, federationConfiguration);
+        federations.put(federationConfiguration.getName(), federation);
         if (state == State.STARTED) {
-            upstream.start();
+            federation.start();
         }
-        return upstream;
+        return federation;
     }
 
-    public FederationUpstream get(String name) {
-        return upstreams.get(name);
+    public Federation get(String name) {
+        return federations.get(name);
     }
 
 
@@ -127,14 +128,6 @@ public class FederationManager implements ActiveMQComponent {
 
     public void unregister(FederatedAbstract federatedAbstract) {
         server.unRegisterBrokerPlugin(federatedAbstract);
-    }
-
-    String getFederationPassword() {
-        return federationPassword;
-    }
-
-    String getFederationUser() {
-        return federationUser;
     }
 
 }

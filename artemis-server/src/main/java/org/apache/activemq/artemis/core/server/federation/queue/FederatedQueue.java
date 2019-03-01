@@ -20,40 +20,56 @@ package org.apache.activemq.artemis.core.server.federation.queue;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import org.apache.activemq.artemis.api.core.ActiveMQException;
-import org.apache.activemq.artemis.api.core.SimpleString;
+import org.apache.activemq.artemis.core.config.WildcardConfiguration;
 import org.apache.activemq.artemis.core.filter.Filter;
 import org.apache.activemq.artemis.core.filter.impl.FilterImpl;
 import org.apache.activemq.artemis.core.postoffice.QueueBinding;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.Queue;
 import org.apache.activemq.artemis.core.server.ServerConsumer;
-import org.apache.activemq.artemis.core.server.federation.*;
 import org.apache.activemq.artemis.core.config.federation.FederationQueuePolicyConfiguration;
+import org.apache.activemq.artemis.core.server.federation.FederatedAbstract;
+import org.apache.activemq.artemis.core.server.federation.FederatedConsumerKey;
+import org.apache.activemq.artemis.core.server.federation.FederatedQueueConsumer;
+import org.apache.activemq.artemis.core.server.federation.Federation;
+import org.apache.activemq.artemis.core.server.federation.FederationUpstream;
 import org.apache.activemq.artemis.core.server.plugin.ActiveMQServerConsumerPlugin;
+import org.apache.activemq.artemis.core.server.transformer.Transformer;
 import org.apache.activemq.artemis.core.settings.impl.Match;
 
+/**
+ * Federated Queue, connect to upstream queues routing them to the local queue when a local consumer exist.
+ *
+ * By default we connect to -1 the current consumer priority on the remote broker, so that if consumers also exist on the remote broker they a dispatched to first.
+ * This though is configurable to change this behaviour.
+ *
+ */
 public class FederatedQueue extends FederatedAbstract implements ActiveMQServerConsumerPlugin, Serializable {
 
-   private final Set<Predicate<String>> includes;
-   private final Set<Predicate<String>> excludes;
+   private final Set<Matcher> includes;
+   private final Set<Matcher> excludes;
    private final Filter metaDataFilter;
+   private final int priorityAdjustment;
 
    private final FederationQueuePolicyConfiguration config;
 
-   public FederatedQueue(FederationManager federationManager, FederationQueuePolicyConfiguration config, ActiveMQServer server, FederationUpstream federationUpstream) throws ActiveMQException {
-      super(federationManager, server, federationUpstream);
+   public FederatedQueue(Federation federation, FederationQueuePolicyConfiguration config, ActiveMQServer server, FederationUpstream federationUpstream) throws ActiveMQException {
+      super(federation, server, federationUpstream);
+      Objects.requireNonNull(config.getName());
       this.config = config;
-      String metaDataFilterString = config.isIncludeFederated() ? null : FederatedQueueConsumer.FEDERATED_CONNECTION_NAME_PROPERTY +  " IS NULL";
+      this.priorityAdjustment = config.getPriorityAdjustment() == null ? -1 : config.getPriorityAdjustment();
+      String metaDataFilterString = config.isIncludeFederated() ? null : FederatedQueueConsumer.FEDERATION_NAME +  " IS NOT NULL";
       metaDataFilter = FilterImpl.createFilter(metaDataFilterString);
       if (config.getIncludes().isEmpty()) {
          includes = Collections.emptySet();
       } else {
          includes = new HashSet<>(config.getIncludes().size());
-         for (String include : config.getIncludes()) {
-            includes.add(new Match<>(include, null, wildcardConfiguration).getPattern().asPredicate());
+         for (FederationQueuePolicyConfiguration.Matcher include : config.getIncludes()) {
+            includes.add(new Matcher(include, wildcardConfiguration));
          }
       }
 
@@ -61,8 +77,8 @@ public class FederatedQueue extends FederatedAbstract implements ActiveMQServerC
          excludes = Collections.emptySet();
       } else {
          excludes = new HashSet<>(config.getExcludes().size());
-         for (String exclude : config.getExcludes()) {
-            excludes.add(new Match<>(exclude, null, wildcardConfiguration).getPattern().asPredicate());
+         for (FederationQueuePolicyConfiguration.Matcher exclude : config.getExcludes()) {
+            excludes.add(new Matcher(exclude, wildcardConfiguration));
          }
       }
    }
@@ -100,30 +116,31 @@ public class FederatedQueue extends FederatedAbstract implements ActiveMQServerC
    }
 
    private void createRemoteConsumer(ServerConsumer consumer) {
-      if (metaDataFilter != null) {
-         metaDataFilter.match(server.getSessionByID(consumer.getSessionID()).getMetaData());
+
+      //We check the session meta data to see if its a federation session, if so by default we ignore these.
+      //To not ignore these, set include-federated to true, which will mean no meta data filter.
+      if (metaDataFilter != null && metaDataFilter.match(server.getSessionByID(consumer.getSessionID()).getMetaData())) {
+         return;
       }
-      if (match(consumer.getQueueName())) {
+      if (match(consumer)) {
          FederatedConsumerKey key = getKey(consumer);
-         createRemoteConsumer(key, message -> message.setAddress(key.getFqqn()), null);
+         Transformer transformer = getTransformer(config.getTransformerRef());
+         Transformer fqqnTransformer = message -> message.setAddress(key.getFqqn());
+         createRemoteConsumer(key, mergeTransformers(fqqnTransformer, transformer), null);
       }
    }
 
-   private boolean match(SimpleString address) {
-      return match(address.toString());
-   }
-
-   private boolean match(String address) {
-      for(Predicate<String> exclude : excludes) {
-         if (exclude.test(address)) {
+   private boolean match(ServerConsumer consumer) {
+      for(Matcher exclude : excludes) {
+         if (exclude.test(consumer)) {
             return false;
          }
       }
       if (includes.isEmpty()) {
          return true;
       } else {
-         for(Predicate<String> include : includes) {
-            if (include.test(address)) {
+         for(Matcher include : includes) {
+            if (include.test(consumer)) {
                return true;
             }
          }
@@ -145,6 +162,28 @@ public class FederatedQueue extends FederatedAbstract implements ActiveMQServerC
 
    private FederatedConsumerKey getKey(ServerConsumer consumer) {
       Queue queue = consumer.getQueue();
-      return new FederatedQueueConsumerKey(queue.getAddress(), queue.getRoutingType(), queue.getName(), Filter.toFilterString(queue.getFilter()), Filter.toFilterString(consumer.getFilter()));
+      int priority = consumer.getPriority() + priorityAdjustment;
+      return new FederatedQueueConsumerKey(queue.getAddress(), queue.getRoutingType(), queue.getName(), Filter.toFilterString(queue.getFilter()), Filter.toFilterString(consumer.getFilter()), priority);
+   }
+
+   public static class Matcher {
+
+      Predicate<String> queuePredicate;
+      Predicate<String> addressPredicate;
+
+      Matcher(FederationQueuePolicyConfiguration.Matcher config, WildcardConfiguration wildcardConfiguration) {
+         if (config.getQueueMatch() != null && !config.getQueueMatch().isEmpty()) {
+            queuePredicate = new Match<>(config.getQueueMatch(), null, wildcardConfiguration).getPattern().asPredicate();
+         }
+         if (config.getAddressMatch() != null && !config.getAddressMatch().isEmpty()) {
+            addressPredicate = new Match<>(config.getAddressMatch(), null, wildcardConfiguration).getPattern().asPredicate();
+         }
+      }
+
+      public boolean test(ServerConsumer consumer) {
+         return (queuePredicate == null || queuePredicate.test(consumer.getQueueName().toString()))
+               && (addressPredicate == null || addressPredicate.test(consumer.getQueueAddress().toString()));
+      }
+
    }
 }

@@ -258,12 +258,6 @@ public class ConfigurationImpl implements Configuration, Serializable {
 
    private List<SecuritySettingPlugin> securitySettingPlugins = new ArrayList<>();
 
-
-   protected String federationUser = ActiveMQDefaultConfiguration.getDefaultFederationUser();
-
-   protected String federationPassword = ActiveMQDefaultConfiguration.getDefaultFederationPassword();
-
-
    private final List<ActiveMQServerBasePlugin> brokerPlugins = new CopyOnWriteArrayList<>();
    private final List<ActiveMQServerConnectionPlugin> brokerConnectionPlugins = new CopyOnWriteArrayList<>();
    private final List<ActiveMQServerSessionPlugin> brokerSessionPlugins = new CopyOnWriteArrayList<>();
@@ -1532,28 +1526,6 @@ public class ConfigurationImpl implements Configuration, Serializable {
    @Override
    public List<FederationConfiguration> getFederationConfigurations() {
       return federationConfigurations;
-   }
-
-   @Override
-   public String getFederationUser() {
-      return federationUser;
-   }
-
-   @Override
-   public Configuration setFederationUser(String user) {
-      this.federationUser = user;
-      return this;
-   }
-
-   @Override
-   public String getFederationPassword() {
-      return federationPassword;
-   }
-
-   @Override
-   public Configuration setFederationPassword(String password) {
-      this.federationPassword = password;
-      return this;
    }
 
    @Override

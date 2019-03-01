@@ -546,7 +546,19 @@
             </xsd:complexType>
          </xsd:element>
 
-         <xsd:element name="federation" type="federationType" maxOccurs="1" minOccurs="0" />
+         <xsd:element name="federations" maxOccurs="1" minOccurs="0">
+            <xsd:annotation>
+               <xsd:documentation>
+                  a list of federations to create
+               </xsd:documentation>
+            </xsd:annotation>
+            <xsd:complexType>
+               <xsd:sequence>
+                  <xsd:element name="federation" type="federationType" maxOccurs="unbounded" minOccurs="0"/>
+               </xsd:sequence>
+               <xsd:attributeGroup ref="xml:specialAttrs"/>
+            </xsd:complexType>
+         </xsd:element>
 
          <xsd:element name="ha-policy" type="haPolicyType" maxOccurs="1" minOccurs="0">
             <xsd:annotation>
@@ -1516,8 +1528,11 @@
          <xsd:element name="policy-set" type="policySetType" minOccurs="0" maxOccurs="unbounded" />
          <xsd:element name="queue-policy" type="queuePolicyType" minOccurs="0" maxOccurs="unbounded" />
          <xsd:element name="address-policy" type="addressPolicyType" minOccurs="0" maxOccurs="unbounded" />
+         <xsd:element name="transformer" type="federationTransformerType" minOccurs="0" maxOccurs="unbounded" />
       </xsd:sequence>
-      <xsd:attribute name="name" type="xsd:string" use="required" />
+      <xsd:attribute name="name" type="xsd:ID" use="required" />
+      <xsd:attribute name="user" type="xsd:string" use="optional" />
+      <xsd:attribute name="password" type="xsd:string" use="optional" />
       <xsd:attributeGroup ref="xml:specialAttrs"/>
    </xsd:complexType>
 
@@ -1534,26 +1549,10 @@
             </xsd:annotation>
          </xsd:element>
 
-         <xsd:element name="circuitBreakerTimeout" type="xsd:long" default="30000" maxOccurs="1" minOccurs="0">
+         <xsd:element name="circuit-breaker-timeout" type="xsd:long" default="30000" maxOccurs="1" minOccurs="0">
             <xsd:annotation>
                <xsd:documentation>
                   whether this connection supports fail-over
-               </xsd:documentation>
-            </xsd:annotation>
-         </xsd:element>
-
-         <xsd:element name="user" type="xsd:string" maxOccurs="1" minOccurs="0">
-            <xsd:annotation>
-               <xsd:documentation>
-                  username, if unspecified the federated-user is used
-               </xsd:documentation>
-            </xsd:annotation>
-         </xsd:element>
-
-         <xsd:element name="password" type="xsd:string" maxOccurs="1" minOccurs="0">
-            <xsd:annotation>
-               <xsd:documentation>
-                  password, if unspecified the federated-password is used
                </xsd:documentation>
             </xsd:annotation>
          </xsd:element>
@@ -1580,12 +1579,22 @@
                </xsd:complexType>
             </xsd:element>
          </xsd:choice>
-
-
          <xsd:element name="policy" type="policyRefType" minOccurs="0" maxOccurs="unbounded"/>
-
       </xsd:sequence>
-
+      <xsd:attribute name="user" type="xsd:string" use="optional">
+         <xsd:annotation>
+            <xsd:documentation>
+               username, if unspecified the federated user is used
+            </xsd:documentation>
+         </xsd:annotation>
+      </xsd:attribute>
+      <xsd:attribute name="password" type="xsd:string" use="optional">
+         <xsd:annotation>
+            <xsd:documentation>
+               password, if unspecified the federated password is used
+            </xsd:documentation>
+         </xsd:annotation>
+      </xsd:attribute>
       <xsd:attribute name="name" type="xsd:ID" use="required">
          <xsd:annotation>
             <xsd:documentation>
@@ -1601,7 +1610,7 @@
       <xsd:sequence>
          <xsd:element name="policy" type="policyRefType" minOccurs="0" maxOccurs="unbounded" />
       </xsd:sequence>
-      <xsd:attribute name="name" type="xsd:string" use="required" />
+      <xsd:attribute name="name" type="xsd:ID" use="required" />
       <xsd:attributeGroup ref="xml:specialAttrs"/>
    </xsd:complexType>
 
@@ -1614,25 +1623,13 @@
 
    <xsd:complexType name="queuePolicyType">
       <xsd:sequence>
-         <xsd:element name="includes" type="queuePolicyIncludeType" minOccurs="0" maxOccurs="1"/>
-         <xsd:element name="excludes" type="queuePolicyExcludeType" minOccurs="0" maxOccurs="1"/>
-         <xsd:element name="includeFederated" type="xsd:boolean" minOccurs="0" maxOccurs="1" />
+         <xsd:element name="include" type="queueMatchType" minOccurs="0" maxOccurs="unbounded"/>
+         <xsd:element name="exclude" type="queueMatchType" minOccurs="0" maxOccurs="unbounded"/>
       </xsd:sequence>
-      <xsd:attribute name="name" type="xsd:string" use="required" />
-      <xsd:attributeGroup ref="xml:specialAttrs"/>
-   </xsd:complexType>
-
-   <xsd:complexType name="queuePolicyIncludeType">
-      <xsd:sequence>
-         <xsd:element name="include" type="queueMatchType" minOccurs="1" maxOccurs="unbounded" />
-      </xsd:sequence>
-      <xsd:attributeGroup ref="xml:specialAttrs"/>
-   </xsd:complexType>
-
-   <xsd:complexType name="queuePolicyExcludeType">
-      <xsd:sequence>
-         <xsd:element name="exclude" type="queueMatchType" minOccurs="1" maxOccurs="unbounded" />
-      </xsd:sequence>
+      <xsd:attribute name="transformer-ref" type="xsd:string" use="optional" />
+      <xsd:attribute name="priority-adjustment" type="xsd:int" use="optional" />
+      <xsd:attribute name="include-federated" type="xsd:boolean" use="optional" />
+      <xsd:attribute name="name" type="xsd:ID" use="required" />
       <xsd:attributeGroup ref="xml:specialAttrs"/>
    </xsd:complexType>
 
@@ -1645,31 +1642,30 @@
 
    <xsd:complexType name="addressPolicyType">
       <xsd:sequence>
-         <xsd:element name="includes" type="queuePolicyIncludeType" minOccurs="0" maxOccurs="1"/>
-         <xsd:element name="excludes" type="queuePolicyExcludeType" minOccurs="0" maxOccurs="1"/>
-         <xsd:element name="max-hops" type="xsd:int" minOccurs="0" maxOccurs="1" />
+         <xsd:element name="include" type="addressMatchType" minOccurs="0" maxOccurs="unbounded"/>
+         <xsd:element name="exclude" type="addressMatchType" minOccurs="0" maxOccurs="unbounded"/>
       </xsd:sequence>
-      <xsd:attribute name="name" type="xsd:string" use="required" />
-      <xsd:attributeGroup ref="xml:specialAttrs"/>
-   </xsd:complexType>
-
-   <xsd:complexType name="addressPolicyIncludeType">
-      <xsd:sequence>
-         <xsd:element name="include" type="addressMatchType" minOccurs="1" maxOccurs="unbounded" />
-      </xsd:sequence>
-      <xsd:attributeGroup ref="xml:specialAttrs"/>
-   </xsd:complexType>
-
-   <xsd:complexType name="addressPolicyExcludeType">
-      <xsd:sequence>
-         <xsd:element name="exclude" type="addressMatchType" minOccurs="1" maxOccurs="unbounded" />
-      </xsd:sequence>
+      <xsd:attribute name="transformer-ref" type="xsd:string" use="optional" />
+      <xsd:attribute name="auto-delete" type="xsd:boolean" use="optional" />
+      <xsd:attribute name="auto-delete-delay" type="xsd:long" use="optional" />
+      <xsd:attribute name="auto-delete-message-count" type="xsd:long" use="optional" />
+      <xsd:attribute name="max-hops" type="xsd:int" use="optional" />
+      <xsd:attribute name="name" type="xsd:ID" use="required" />
       <xsd:attributeGroup ref="xml:specialAttrs"/>
    </xsd:complexType>
 
    <xsd:complexType name="addressMatchType">
       <xsd:attribute name="address-match" type="xsd:string" use="required" />
       <xsd:attributeGroup ref="xml:specialAttrs" />
+   </xsd:complexType>
+
+   <xsd:complexType name="federationTransformerType">
+      <xsd:complexContent>
+         <xsd:extension base="transformerType">
+            <xsd:attribute name="name" type="xsd:ID" use="required" />
+            <xsd:attributeGroup ref="xml:specialAttrs"/>
+         </xsd:extension>
+      </xsd:complexContent>
    </xsd:complexType>
 
    <!-- TRANSFORMER CONFIGURATION -->

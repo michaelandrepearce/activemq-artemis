@@ -30,7 +30,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Consumer Priority Test
+ * Federated Queue Test
  */
 public class FederatedQueueTest extends FederatedTestBase {
 
@@ -128,7 +128,7 @@ public class FederatedQueueTest extends FederatedTestBase {
 
          producer.send(session1.createTextMessage("hello"));
 
-         assertNotNull(consumer0.receive(1000));
+         assertNotNull(consumer0.receive(10000));
       }
    }
 
@@ -177,7 +177,7 @@ public class FederatedQueueTest extends FederatedTestBase {
          MessageConsumer consumer1 = session1.createConsumer(queue1);
 
          producer0.send(session1.createTextMessage("hello"));
-         assertNotNull(consumer1.receive(1000));
+         assertNotNull(consumer1.receive(10000));
 
          producer1.send(session1.createTextMessage("hello"));
          assertNotNull(consumer1.receive(1000));
@@ -361,18 +361,20 @@ public class FederatedQueueTest extends FederatedTestBase {
       FederationUpstreamConfiguration upstreamConfiguration = new FederationUpstreamConfiguration();
       upstreamConfiguration.setName(connector);
       upstreamConfiguration.getConnectionConfiguration().setStaticConnectors(Collections.singletonList(connector));
-      upstreamConfiguration.getConnectionConfiguration().setCircuitBreakTimeout(-1);
+      upstreamConfiguration.getConnectionConfiguration().setCircuitBreakerTimeout(-1);
       upstreamConfiguration.addPolicyRef("QueuePolicy" + queueName);
 
 
       FederationQueuePolicyConfiguration queuePolicyConfiguration = new FederationQueuePolicyConfiguration();
       queuePolicyConfiguration.setName( "QueuePolicy" + queueName);
-      queuePolicyConfiguration.addInclude(queueName);
+      queuePolicyConfiguration.addInclude(new FederationQueuePolicyConfiguration.Matcher()
+            .setQueueMatch(queueName));
       if (includeFederated != null) {
          queuePolicyConfiguration.setIncludeFederated(includeFederated);
       }
 
       FederationConfiguration federationConfiguration = new FederationConfiguration();
+      federationConfiguration.setName("default");
       federationConfiguration.addUpstreamConfiguration(upstreamConfiguration);
       federationConfiguration.addFederationPolicy(queuePolicyConfiguration);
 

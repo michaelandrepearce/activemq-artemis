@@ -1,6 +1,25 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.activemq.artemis.core.server.federation;
 
-import org.apache.activemq.artemis.api.core.*;
+import org.apache.activemq.artemis.api.core.ActiveMQSessionCreationException;
+import org.apache.activemq.artemis.api.core.DiscoveryGroupConfiguration;
+import org.apache.activemq.artemis.api.core.TransportConfiguration;
 import org.apache.activemq.artemis.api.core.client.ActiveMQClient;
 import org.apache.activemq.artemis.api.core.client.ClientSessionFactory;
 import org.apache.activemq.artemis.api.core.client.ServerLocator;
@@ -12,13 +31,13 @@ public class FederationConnection {
 
     private final FederationConnectionConfiguration config;
     private final ServerLocator serverLocator;
-    private final long circuitBreakTimeout;
+    private final long circuitBreakerTimeout;
     private volatile ClientSessionFactory clientSessionFactory;
     private volatile boolean started;
 
     public FederationConnection(Configuration configuration, String name, FederationConnectionConfiguration config) {
         this.config = config;
-        this.circuitBreakTimeout = config.getCircuitBreakTimeout();
+        this.circuitBreakerTimeout = config.getCircuitBreakerTimeout();
         if (config.getDiscoveryGroupName() != null) {
             DiscoveryGroupConfiguration discoveryGroupConfiguration = configuration.getDiscoveryGroupConfigurations().get(config.getDiscoveryGroupName());
             if (discoveryGroupConfiguration == null) {
@@ -89,13 +108,13 @@ public class FederationConnection {
     private long lastCreateClientSessionFactoryExceptionTimestamp;
 
     private synchronized ClientSessionFactory circuitBreakerCreateClientSessionFactory() throws Exception {
-        if (circuitBreakTimeout < 0 || circuitBreakerException == null || lastCreateClientSessionFactoryExceptionTimestamp < System.currentTimeMillis()) {
+        if (circuitBreakerTimeout < 0 || circuitBreakerException == null || lastCreateClientSessionFactoryExceptionTimestamp < System.currentTimeMillis()) {
             try {
                 circuitBreakerException = null;
                 return createClientSessionFactory();
             } catch (Exception e) {
                 circuitBreakerException = e;
-                lastCreateClientSessionFactoryExceptionTimestamp = System.currentTimeMillis() + circuitBreakTimeout;
+                lastCreateClientSessionFactoryExceptionTimestamp = System.currentTimeMillis() + circuitBreakerTimeout;
                 throw e;
             }
         } else {

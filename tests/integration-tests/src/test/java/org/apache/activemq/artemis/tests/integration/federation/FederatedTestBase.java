@@ -30,7 +30,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Consumer Priority Test
+ * Federation Test Base
  */
 public class FederatedTestBase extends ActiveMQTestBase {
 
