@@ -22,13 +22,7 @@ import org.apache.activemq.artemis.core.message.impl.CoreMessageObjectPools;
 import org.apache.activemq.artemis.core.protocol.core.Channel;
 import org.apache.activemq.artemis.core.protocol.core.Packet;
 import org.apache.activemq.artemis.core.protocol.core.ServerSessionPacketHandler;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.DisconnectConsumerMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionProducerCreditsFailMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionProducerCreditsMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionReceiveContinuationMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionReceiveLargeMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionReceiveMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionReceiveMessage_1X;
+import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.*;
 import org.apache.activemq.artemis.core.server.ActiveMQServerLogger;
 import org.apache.activemq.artemis.core.server.MessageReference;
 import org.apache.activemq.artemis.core.server.ServerConsumer;
@@ -121,6 +115,10 @@ public final class CoreSessionCallback implements SessionCallback {
          packet = new SessionReceiveMessage_1X(consumer.getID(), message.toCore(coreMessageObjectPools), deliveryCount);
       } else {
          packet = new SessionReceiveMessage(consumer.getID(), message.toCore(coreMessageObjectPools), deliveryCount);
+      }
+
+      if (channel.getConnection().getTransportConnection().isInVM()) {
+         packet = new InVmPacket(packet);
       }
 
       int size = 0;

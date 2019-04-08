@@ -21,66 +21,8 @@ import org.apache.activemq.artemis.core.message.impl.CoreMessage;
 import org.apache.activemq.artemis.core.protocol.core.CoreRemotingConnection;
 import org.apache.activemq.artemis.core.protocol.core.Packet;
 import org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.BackupRegistrationMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.BackupReplicationStartFailedMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.BackupRequestMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.BackupResponseMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ClusterConnectMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ClusterConnectReplyMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.NodeAnnounceMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.QuorumVoteMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.QuorumVoteReplyMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ReplicationAddMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ReplicationAddTXMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ReplicationCommitMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ReplicationDeleteMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ReplicationDeleteTXMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ReplicationLargeMessageBeginMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ReplicationLargeMessageEndMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ReplicationLargeMessageWriteMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ReplicationLiveIsStoppingMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ReplicationPageEventMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ReplicationPageWriteMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ReplicationPrepareMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ReplicationResponseMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ReplicationResponseMessageV2;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ReplicationStartSyncMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ReplicationSyncFileMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.ScaleDownAnnounceMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionAcknowledgeMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionConsumerFlowCreditMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionRequestProducerCreditsMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionSendLargeMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionSendMessage;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionSendMessage_1X;
-import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionSendMessage_V2;
-
-import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.BACKUP_REQUEST;
-import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.BACKUP_REQUEST_RESPONSE;
-import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.CLUSTER_CONNECT;
-import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.CLUSTER_CONNECT_REPLY;
-import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.NODE_ANNOUNCE;
-import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.QUORUM_VOTE;
-import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.QUORUM_VOTE_REPLY;
-import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.REPLICATION_APPEND;
-import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.REPLICATION_APPEND_TX;
-import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.REPLICATION_COMMIT_ROLLBACK;
-import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.REPLICATION_DELETE;
-import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.REPLICATION_DELETE_TX;
-import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.REPLICATION_LARGE_MESSAGE_BEGIN;
-import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.REPLICATION_LARGE_MESSAGE_END;
-import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.REPLICATION_LARGE_MESSAGE_WRITE;
-import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.REPLICATION_PAGE_EVENT;
-import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.REPLICATION_PAGE_WRITE;
-import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.REPLICATION_PREPARE;
-import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.REPLICATION_RESPONSE;
-import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.REPLICATION_RESPONSE_V2;
-import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.SCALEDOWN_ANNOUNCEMENT;
-import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.SESS_ACKNOWLEDGE;
-import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.SESS_FLOWTOKEN;
-import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.SESS_PRODUCER_REQUEST_CREDITS;
-import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.SESS_SEND;
-import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.SESS_SEND_LARGE;
+import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.*;
+import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.*;
 
 public class ServerPacketDecoder extends ClientPacketDecoder {
 
@@ -124,6 +66,8 @@ public class ServerPacketDecoder extends ClientPacketDecoder {
       final byte packetType = in.readByte();
       //optimized for the most common cases: hottest and commons methods will be inlined and this::decode too due to the byte code size
       switch (packetType) {
+         case IN_VM:
+            return decodeInVMPacket(in);
          case SESS_SEND:
             return decodeSessionSendMessage(in, connection);
          case SESS_ACKNOWLEDGE:
@@ -135,6 +79,12 @@ public class ServerPacketDecoder extends ClientPacketDecoder {
          default:
             return slowPathDecode(in, packetType, connection);
       }
+   }
+
+   private Packet decodeInVMPacket(ActiveMQBuffer in) {
+      InVmPacket inVmPacket = new InVmPacket();
+      inVmPacket.decode(in);
+      return inVmPacket.getPacket();
    }
 
 

@@ -155,4 +155,8 @@ public interface Connection {
    //returns true if one of the configs points to the same
    //node as this connection does.
    boolean isSameTarget(TransportConfiguration... configs);
+
+   default boolean isInVM() {
+      return false;
+   }
 }

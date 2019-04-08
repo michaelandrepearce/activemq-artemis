@@ -23,12 +23,11 @@ import org.apache.activemq.artemis.core.message.impl.CoreMessageObjectPools;
 import org.apache.activemq.artemis.core.protocol.core.CoreRemotingConnection;
 import org.apache.activemq.artemis.core.protocol.core.Packet;
 import org.apache.activemq.artemis.core.protocol.core.impl.PacketDecoder;
+import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.*;
+import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.InVmPacket;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionReceiveClientLargeMessage;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionReceiveMessage;
 import org.apache.activemq.artemis.core.protocol.core.impl.wireformat.SessionReceiveMessage_1X;
-
-import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.SESS_RECEIVE_LARGE_MSG;
-import static org.apache.activemq.artemis.core.protocol.core.impl.PacketImpl.SESS_RECEIVE_MSG;
 
 public class ClientPacketDecoder extends PacketDecoder {
 
@@ -39,11 +38,21 @@ public class ClientPacketDecoder extends PacketDecoder {
    public Packet decode(final ActiveMQBuffer in, CoreRemotingConnection connection) {
       final byte packetType = in.readByte();
 
+      if (packetType == IN_VM) {
+         return decodeInVMPacket(in);
+      }
+
       Packet packet = decode(packetType, connection);
 
       packet.decode(in);
 
       return packet;
+   }
+
+   private Packet decodeInVMPacket(ActiveMQBuffer in) {
+      InVmPacket inVmPacket = new InVmPacket();
+      inVmPacket.decode(in);
+      return inVmPacket.getPacket();
    }
 
    @Override

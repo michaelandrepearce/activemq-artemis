@@ -309,4 +309,9 @@ public class InVMConnection implements Connection {
       }
       return result;
    }
+
+   @Override
+   public boolean isInVM() {
+      return true;
+   }
 }

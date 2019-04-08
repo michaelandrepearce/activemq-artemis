@@ -56,6 +56,7 @@ public class PacketImpl implements Packet {
 
    // The packet types
    // -----------------------------------------------------------------------------------
+   public static final byte IN_VM = 9;
 
    public static final byte PING = 10;
 
