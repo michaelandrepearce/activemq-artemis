@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.activemq.artemis.api.core.ActiveMQBuffer;
 import org.apache.activemq.artemis.api.core.ActiveMQException;
 import org.apache.activemq.artemis.api.core.ActiveMQPropertyConversionException;
@@ -62,6 +63,7 @@ import org.apache.qpid.proton.amqp.messaging.Section;
 import org.apache.qpid.proton.codec.DecoderImpl;
 import org.apache.qpid.proton.codec.DroppingWritableBuffer;
 import org.apache.qpid.proton.codec.EncoderImpl;
+import org.apache.qpid.proton.codec.ReadableBuffer;
 import org.apache.qpid.proton.codec.ReadableBuffer;
 import org.apache.qpid.proton.codec.TypeConstructor;
 import org.apache.qpid.proton.codec.WritableBuffer;
@@ -322,6 +324,8 @@ public class AMQPMessage extends RefCountMessage {
       return scanForMessageSection(Math.max(0, remainingBodyPosition), Footer.class);
    }
 
+   private static Map<Class, Object> sectionCache = new ConcurrentHashMap<>();
+
    @SuppressWarnings({ "unchecked", "rawtypes" })
    private <T> T scanForMessageSection(int scanStartPosition, Class...targetTypes) {
       ensureMessageDataScanned();
@@ -342,10 +346,14 @@ public class AMQPMessage extends RefCountMessage {
       decoder.setBuffer(buffer);
       try {
          while (buffer.hasRemaining()) {
-            TypeConstructor<?> constructor = decoder.readConstructor();
+            TypeConstructor<Object> constructor = decoder.readConstructor();
             for (Class<?> type : targetTypes) {
                if (type.equals(constructor.getTypeClass())) {
-                  section = (T) constructor.readValue();
+                  Object cached = sectionCache.get(type);
+                  section = (T) constructor.readValue(cached);
+                  if (cached != section) {
+                     sectionCache.put(type, section);
+                  }
                   return section;
                }
             }
